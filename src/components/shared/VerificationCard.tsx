@@ -1,0 +1,80 @@
+/**
+ * src/components/shared/VerificationCard.tsx
+ * Card for admin verification queue — extracted from admin/verification/page.tsx
+ */
+import Image from "next/image";
+import { ImageIcon, CheckCircle, XCircle } from "lucide-react";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import { formatDateShort } from "@/lib/utils";
+import type { ReportWithRelations } from "@/types";
+
+interface VerificationCardProps {
+  report: ReportWithRelations;
+  onVerify: (id: string) => void;
+  onReject: (id: string) => void;
+  isPending: boolean;
+}
+
+export default function VerificationCard({
+  report, onVerify, onReject, isPending,
+}: VerificationCardProps) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+      {/* Image */}
+      <div className="relative w-full h-44 bg-gray-100 flex items-center justify-center">
+        {report.imageUrl
+          ? <Image src={report.imageUrl} alt={report.title} fill className="object-cover" />
+          : <ImageIcon size={36} className="text-gray-300" />
+        }
+      </div>
+
+      <div className="px-4 pt-3 pb-4 flex flex-col gap-2">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-gray-500 truncate">{report.area.name}</span>
+          <Badge variant="unverified" />
+        </div>
+
+        <h3 className="text-base font-bold text-gray-900 line-clamp-1">{report.title}</h3>
+
+        <div className="flex flex-col gap-0.5 text-xs text-gray-500">
+          <span>Kategori: <strong>{report.category.name}</strong></span>
+          <span>Pelapor: <strong>{report.author.name}</strong></span>
+          <span>Dilaporkan: {formatDateShort(report.createdAt)}</span>
+          {report.facility && (
+            <span className="text-teal-600 font-semibold mt-0.5">
+              Dititipkan di: {report.facility.name}
+            </span>
+          )}
+        </div>
+
+        <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">{report.description}</p>
+
+        {/* Actions */}
+        <div className="grid grid-cols-2 gap-2 mt-1">
+          <Button
+            variant="primary"
+            size="full"
+            className="rounded-full text-xs"
+            icon={<CheckCircle size={14} />}
+            loading={isPending}
+            onClick={() => onVerify(report.id)}
+          >
+            Verifikasi
+          </Button>
+          <Button
+            variant="destructive"
+            size="full"
+            className="rounded-full text-xs"
+            icon={<XCircle size={14} />}
+            loading={isPending}
+            onClick={() => onReject(report.id)}
+          >
+            Tolak
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

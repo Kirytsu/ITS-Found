@@ -1,29 +1,123 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "sqlite"
 }
 
-model Item {
-  id          String   @id @default(cuid())
-  title       String
-  description String
-  location    String
-  type        String   // "LOST" or "FOUND"
-  status      String   @default("OPEN") // "OPEN", "RESOLVED"
-  category    String?
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
 }
 
+enum ReportType {
+  LOST
+  FOUND
+}
+
+enum ReportStatus {
+  UNVERIFIED  // FOUND only: waiting for admin physical verification
+  PUBLISHED   // Visible to public (LOST defaults here; FOUND after verification)
+  RESOLVED    // Item returned / claimed
+  REJECTED    // Rejected by admin (spam / invalid)
+}
+
+// ─── Master Data (seeded) ─────────────────────────────────────────────────────
+
+model Area {
+  id         String     @id @default(cuid())
+  name       String     @unique
+  facilities Facility[]
+  reports    Report[]
+}
+
+model Facility {
+  id      String  @id @default(cuid())
+  name    String
+  phone   String?
+  address String?
+
+  areaId  String
+  area    Area     @relation(fields: [areaId], references: [id])
+  reports Report[]
+}
+
+model Category {
+  id      String   @id @default(cuid())
+  name    String   @unique
+  reports Report[]
+}
+
+// ─── Core Models ──────────────────────────────────────────────────────────────
+
 model User {
-  id    String @id @default(cuid())
-  email String @unique
-  name  String?
-  items Item[]
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String         // hashed (bcryptjs)
+  role          Role           @default(USER)
+  reports       Report[]       @relation("AuthoredReports")
+  verifiedReports Report[]     @relation("VerifiedReports")
+  resolvedReports Report[]     @relation("ResolvedReports")
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  title          String       // e.g. "HP Xiaomi Redmi Note 9"
+  type           ReportType
+  status         ReportStatus
+
+  categoryId     String
+  category       Category     @relation(fields: [categoryId], references: [id])
+
+  areaId         String
+  area           Area         @relation(fields: [areaId], references: [id])
+
+  // Required for FOUND: the specific facility where the item is deposited
+  facilityId     String?
+  facility       Facility?    @relation(fields: [facilityId], references: [id])
+
+  locationDetail String       // free-text: "Ruang 301", "Depan lift lantai 3"
+  description    String
+  incidentDate   DateTime
+  imageUrl       String?      // stored under /public/uploads/
+
+  authorId       String
+  author         User         @relation("AuthoredReports", fields: [authorId], references: [id])
+
+  verifiedAt     DateTime?
+  verifiedById   String?
+  verifiedBy     User?        @relation("VerifiedReports", fields: [verifiedById], references: [id])
+
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolvedBy     User?        @relation("ResolvedReports", fields: [resolvedById], references: [id])
+
+  takerName      String?      // Name of the person who claimed the item (for FOUND reports)
+
+  notifications  Notification[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Notification {
+  id      String  @id @default(cuid())
+  message String
+  isRead  Boolean @default(false)
+
+  userId  String
+  user    User    @relation(fields: [userId], references: [id])
+
+  // The report that triggered the match notification
+  matchedReportId String?
+  matchedReport   Report?  @relation(fields: [matchedReportId], references: [id])
+
+  createdAt DateTime @default(now())
 }
