@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  location    String
+  type        String   // "LOST" or "FOUND"
+  status      String   @default("OPEN") // "OPEN", "RESOLVED"
+  category    String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id    String @id @default(cuid())
+  email String @unique
+  name  String?
+  items Item[]
+}
