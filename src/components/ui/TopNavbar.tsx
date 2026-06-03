@@ -6,7 +6,7 @@
  *   Section 1 — (unlabeled): Dashboard
  *   Section 2 — "Laporan": Kehilangan | Penemuan | Laporan Saya
  *   Section 3 — "Lapor": Lapor Kehilangan | Lapor Penemuan
- *   Section 4 — bottom: Pengaturan | Keluar
+ *   Section 4 — bottom: Profil | Notifikasi | Pengaturan | Keluar
  *
  * All icons are monochrome gray — teal ONLY for active state.
  */
@@ -16,7 +16,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Menu, X, LayoutDashboard, List, Search,
   PackageOpen, ClipboardList, Settings, LogOut,
-  PlusCircle, ShieldCheck,
+  PlusCircle, ShieldCheck, User, Bell, ChevronDown,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { logoutUser } from "@/lib/actions/auth.actions";
@@ -46,7 +46,7 @@ function buildSections(isAdmin?: boolean): NavSection[] {
     {
       // Section 1: Dashboard (no label)
       items: [
-        { href: "/",      label: "Dashboard",  icon: LayoutDashboard },
+        { href: "/", label: "Dashboard", icon: LayoutDashboard },
         ...(isAdmin
           ? [{ href: "/admin/verification", label: "Verifikasi Laporan", icon: ShieldCheck }]
           : []),
@@ -56,17 +56,17 @@ function buildSections(isAdmin?: boolean): NavSection[] {
       // Section 2: Laporan
       label: "Laporan",
       items: [
-        { href: "/lost",        label: "Kehilangan",   icon: Search },
-        { href: "/found",       label: "Penemuan",     icon: PackageOpen },
-        { href: "/my-reports",  label: "Laporan Saya", icon: ClipboardList },
+        { href: "/lost", label: "Kehilangan", icon: Search },
+        { href: "/found", label: "Penemuan", icon: PackageOpen },
+        { href: "/my-reports", label: "Laporan Saya", icon: ClipboardList },
       ],
     },
     {
       // Section 3: Lapor (create)
       label: "Lapor",
       items: [
-        { href: "/report/new?type=lost",  label: "Lapor Kehilangan", icon: PlusCircle },
-        { href: "/report/new?type=found", label: "Lapor Penemuan",   icon: PlusCircle },
+        { href: "/report/new?type=lost", label: "Lapor Kehilangan", icon: PlusCircle },
+        { href: "/report/new?type=found", label: "Lapor Penemuan", icon: PlusCircle },
       ],
     },
   ];
@@ -129,6 +129,19 @@ function SidebarContent({
 }) {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
+      {/* Profile Card (Desktop) */}
+      <Link href="/profile" className="hidden lg:block px-4 py-4 border-b border-gray-100 flex-shrink-0 hover:bg-gray-50 transition-colors rounded-b-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 select-none">
+            {userName ? userName.charAt(0).toUpperCase() : "?"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Lihat profil</p>
+          </div>
+        </div>
+      </Link>
+
       {/* Brand */}
       <div className="px-4 py-5 border-b border-gray-100 flex-shrink-0">
         <p className="text-lg font-bold tracking-tight text-gray-900 select-none">ITS Found</p>
@@ -159,8 +172,16 @@ function SidebarContent({
         ))}
       </nav>
 
-      {/* Bottom: Pengaturan + Keluar */}
+      {/* Bottom: Profil + Notifikasi + Pengaturan + Keluar */}
       <div className="px-2 pb-4 pt-3 border-t border-gray-100 flex-shrink-0 flex flex-col gap-0.5">
+        <NavLink
+          item={{ href: "/profile", label: "Profil Saya", icon: User }}
+          onClose={onClose}
+        />
+        <NavLink
+          item={{ href: "/notifications", label: "Notifikasi", icon: Bell }}
+          onClose={onClose}
+        />
         <NavLink
           item={{ href: "/settings", label: "Pengaturan", icon: Settings }}
           onClose={onClose}
@@ -180,11 +201,13 @@ function SidebarContent({
 /* ─────────────── TopNavbar ─────────────────────────────────────────────────── */
 export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNavbarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const router = useRouter();
   const sections = buildSections(isAdmin);
 
   const handleLogout = async () => {
     setDrawerOpen(false);
+    setProfileDropdownOpen(false);
     await logoutUser();
     router.push("/login");
     router.refresh();
@@ -206,13 +229,76 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
 
         <span className="text-base font-bold text-gray-900 tracking-tight">ITS Found</span>
 
-        {/* Avatar with notif dot */}
+        {/* Avatar with notif dot - clickable profile dropdown */}
         <div className="relative">
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 text-sm font-bold select-none">
+          <button
+            onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+            className="relative w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold select-none hover:shadow-md transition-shadow"
+            aria-label="Profil"
+          >
             {userName ? userName.charAt(0).toUpperCase() : "?"}
-          </div>
+          </button>
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
+
+          {/* Profile Dropdown Menu */}
+          {profileDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setProfileDropdownOpen(false)}
+              />
+              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl border border-gray-200 shadow-lg z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-xs text-gray-500">Terdaftar sebagai</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                </div>
+                <div className="flex flex-col py-2">
+                  <Link
+                    href="/profile"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <User size={16} className="text-gray-400" />
+                    Profil Saya
+                  </Link>
+                  <Link
+                    href="/notifications"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 relative"
+                  >
+                    <Bell size={16} className="text-gray-400" />
+                    Notifikasi
+                    {unreadCount > 0 && (
+                      <span className="ml-auto text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    href="/settings"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <Settings size={16} className="text-gray-400" />
+                    Pengaturan
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      setProfileDropdownOpen(false);
+                      await logoutUser();
+                      router.push("/login");
+                      router.refresh();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+                  >
+                    <LogOut size={16} className="text-gray-400" />
+                    Keluar
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </header>
