@@ -61,7 +61,7 @@ export async function verifyReport(id: string): Promise<ActionResult> {
 
   await db.report.update({
     where: { id },
-    data: { 
+    data: {
       status: "PUBLISHED",
       verifiedAt: new Date(),
       verifiedById: session.userId,
@@ -72,8 +72,11 @@ export async function verifyReport(id: string): Promise<ActionResult> {
   const matches = await findMatches(id);
   await createMatchNotifications(id, matches);
 
+  // Revalidate all relevant paths
   revalidatePath("/admin/verification");
   revalidatePath("/found");
+  revalidatePath("/");
+  revalidatePath(`/report/${id}`);
 
   return { success: true, message: "Laporan berhasil diverifikasi dan dipublikasikan." };
 }
@@ -90,7 +93,10 @@ export async function rejectReport(id: string): Promise<ActionResult> {
 
   await db.report.update({ where: { id }, data: { status: "REJECTED" } });
 
+  // Revalidate all relevant paths
   revalidatePath("/admin/verification");
+  revalidatePath(`/report/${id}`);
+  revalidatePath("/");
 
   return { success: true, message: "Laporan telah ditolak." };
 }
@@ -110,8 +116,12 @@ export async function forceUpdateStatus(
 
   await db.report.update({ where: { id }, data: { status: newStatus } });
 
+  // Revalidate all relevant paths
   revalidatePath(`/report/${id}`);
   revalidatePath("/admin/verification");
+  revalidatePath("/lost");
+  revalidatePath("/found");
+  revalidatePath("/");
 
   return { success: true, message: `Status laporan berhasil diubah menjadi ${newStatus}.` };
 }

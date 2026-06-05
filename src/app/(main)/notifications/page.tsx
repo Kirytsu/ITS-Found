@@ -3,10 +3,11 @@
  * User notifications page - displays all notifications with matched reports.
  */
 import Link from "next/link";
-import { Bell, ArrowRight, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import { Bell, ArrowRight } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
-import { getSession, requireSession } from "@/lib/auth";
-import { getMyNotifications, markNotificationAsRead } from "@/lib/actions/notification.actions";
+import { requireSession } from "@/lib/auth";
+import { getMyNotifications, markAllNotificationsAsRead } from "@/lib/actions/notification.actions";
 
 function formatTime(date: Date): string {
     const now = new Date();
@@ -29,6 +30,11 @@ function formatTime(date: Date): string {
 export default async function NotificationsPage() {
     const session = await requireSession();
     const notifications = await getMyNotifications(session.userId);
+
+    // Mark all notifications as read
+    if (notifications.some(n => !n.isRead)) {
+        await markAllNotificationsAsRead(session.userId);
+    }
 
     return (
         <div className="flex flex-col gap-6">
@@ -55,8 +61,8 @@ export default async function NotificationsPage() {
                             <div
                                 key={notification.id}
                                 className={`rounded-2xl border p-4 transition-colors ${notification.isRead
-                                        ? "bg-gray-50 border-gray-200"
-                                        : "bg-teal-50 border-teal-200"
+                                    ? "bg-gray-50 border-gray-200"
+                                    : "bg-teal-50 border-teal-200"
                                     }`}
                             >
                                 <div className="flex gap-3">
@@ -93,9 +99,11 @@ export default async function NotificationsPage() {
                                     >
                                         <div className="flex-shrink-0">
                                             {matchedReport.imageUrl ? (
-                                                <img
+                                                <Image
                                                     src={matchedReport.imageUrl}
                                                     alt={matchedReport.title}
+                                                    width={48}
+                                                    height={48}
                                                     className="w-12 h-12 rounded-lg object-cover"
                                                 />
                                             ) : (
@@ -109,7 +117,7 @@ export default async function NotificationsPage() {
                                                 {matchedReport.title}
                                             </h3>
                                             <p className="text-xs text-gray-500 mt-1">
-                                                {matchedReport.type === "LOST" ? "🔍 Kehilangan" : "📦 Penemuan"} • {matchedReport.area.name}
+                                                {matchedReport.type === "LOST" ? "Kehilangan" : "Penemuan"} • {matchedReport.area.name}
                                             </p>
                                         </div>
                                     </Link>

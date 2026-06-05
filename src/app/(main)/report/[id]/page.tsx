@@ -12,8 +12,15 @@ import ReportTimeline from "@/components/shared/ReportTimeline";
 import MatchedReportsSection from "@/components/shared/MatchedReportsSection";
 import ReportDetailActions from "@/components/shared/ReportDetailActions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = rawId.trim();
+
+  if (!id) notFound();
+
   const [report, matches, session] = await Promise.all([
     getReportById(id),
     getMatchedReports(id),

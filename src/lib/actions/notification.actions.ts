@@ -4,6 +4,7 @@
  * Smart Match notification logic and notification management.
  */
 import { db } from "../db";
+import { revalidatePath } from "next/cache";
 import type { ReportWithRelations } from "../../types";
 
 /**
@@ -111,6 +112,16 @@ export async function markNotificationAsRead(notifId: string): Promise<void> {
     where: { id: notifId },
     data: { isRead: true },
   });
+  revalidatePath("/notifications");
+}
+
+/** Marks all notifications for a user as read. */
+export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+  await db.notification.updateMany({
+    where: { userId, isRead: false },
+    data: { isRead: true },
+  });
+  revalidatePath("/notifications");
 }
 
 /** Returns all notifications for a user, newest first. */

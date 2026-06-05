@@ -4,7 +4,7 @@
  * Uploads image to /api/upload before calling createReport/updateReport.
  * Sticky bar: left-0 right-0 lg:left-64 (excludes desktop sidebar).
  */
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
@@ -61,9 +61,23 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
-    if (type !== "found" || !areaId) { setFacilityOptions([]); setFacilityId(""); return; }
-    getFacilitiesByArea(areaId).then(setFacilityOptions);
+    if (type !== "found" || !areaId) return;
+
+    let isActive = true;
+    getFacilitiesByArea(areaId).then((options) => {
+      if (isActive) setFacilityOptions(options);
+    });
+
+    return () => {
+      isActive = false;
+    };
   }, [areaId, type]);
+
+  const handleAreaChange = (nextAreaId: string) => {
+    setAreaId(nextAreaId);
+    setFacilityId("");
+    setFacilityOptions([]);
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -129,7 +143,7 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Combobox
             label="Area" options={areas} value={areaId}
-            onChange={setAreaId} placeholder="Pilih Area" required
+            onChange={handleAreaChange} placeholder="Pilih Area" required
           />
           <Select
             label="Kategori" name="categoryId" options={categories}

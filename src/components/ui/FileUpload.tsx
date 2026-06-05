@@ -5,7 +5,7 @@
  * Calls onFileChange(file) when file is selected/cleared.
  */
 import { useState, useRef, useCallback } from "react";
-import { ImageIcon, X, Upload } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { clsx } from "clsx";
 
 interface FileUploadProps {

@@ -14,9 +14,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  Menu, X, LayoutDashboard, List, Search,
+  Menu, X, LayoutDashboard, Search,
   PackageOpen, ClipboardList, Settings, LogOut,
-  PlusCircle, ShieldCheck, User, Bell, ChevronDown,
+  PlusCircle, ShieldCheck, User, Bell,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { logoutUser } from "@/lib/actions/auth.actions";

@@ -65,8 +65,12 @@ export async function createReport(
     await createMatchNotifications(report.id, matches);
   }
 
+  // Revalidate all relevant paths
   revalidatePath("/");
-  revalidatePath(input.type === "LOST" ? "/lost" : "/found");
+  revalidatePath("/lost");
+  revalidatePath("/found");
+  revalidatePath("/my-reports");
+  revalidatePath(`/report/${report.id}`);
 
   return {
     success: true,
@@ -100,12 +104,12 @@ export async function getPublicReports(
       : {}),
     ...(search?.trim()
       ? {
-          OR: [
-            { title: { contains: search } },
-            { description: { contains: search } },
-            { locationDetail: { contains: search } },
-          ],
-        }
+        OR: [
+          { title: { contains: search } },
+          { description: { contains: search } },
+          { locationDetail: { contains: search } },
+        ],
+      }
       : {}),
   };
 
@@ -148,12 +152,12 @@ export async function getMyReports(
     ...(status && { status }),
     ...(search?.trim()
       ? {
-          OR: [
-            { title: { contains: search } },
-            { description: { contains: search } },
-            { locationDetail: { contains: search } },
-          ],
-        }
+        OR: [
+          { title: { contains: search } },
+          { description: { contains: search } },
+          { locationDetail: { contains: search } },
+        ],
+      }
       : {}),
   };
 
@@ -171,8 +175,11 @@ export async function getMyReports(
 export async function getReportById(
   id: string
 ): Promise<ReportWithRelations | null> {
+  const normalizedId = id.trim();
+  if (!normalizedId) return null;
+
   const report = await db.report.findUnique({
-    where: { id },
+    where: { id: normalizedId },
     include: REPORT_INCLUDE,
   });
   return report as ReportWithRelations | null;
@@ -208,8 +215,12 @@ export async function updateReport(
     },
   });
 
+  // Revalidate all relevant paths
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");
+  revalidatePath("/lost");
+  revalidatePath("/found");
+  revalidatePath("/");
 
   return { success: true, message: "Laporan berhasil diperbarui." };
 }
@@ -231,7 +242,10 @@ export async function deleteReport(id: string): Promise<ActionResult> {
   await db.notification.deleteMany({ where: { matchedReportId: id } });
   await db.report.delete({ where: { id } });
 
+  // Revalidate all relevant paths
   revalidatePath("/my-reports");
+  revalidatePath("/lost");
+  revalidatePath("/found");
   revalidatePath("/");
 
   return { success: true, message: "Laporan berhasil dihapus." };
@@ -261,18 +275,21 @@ export async function resolveReport(id: string, takerName?: string): Promise<Act
     return { success: false, message: "Laporan sudah berstatus selesai." };
   }
 
-  await db.report.update({ 
-    where: { id }, 
-    data: { 
+  await db.report.update({
+    where: { id },
+    data: {
       status: "RESOLVED",
       resolvedAt: new Date(),
       resolvedById: session.userId,
       takerName: report.type === "FOUND" ? takerName?.trim() : null,
-    } 
+    }
   });
 
+  // Revalidate all relevant paths
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");
+  revalidatePath("/lost");
+  revalidatePath("/found");
   revalidatePath("/");
 
   return { success: true, message: "Laporan berhasil ditandai selesai." };

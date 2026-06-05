@@ -8,8 +8,15 @@ import { getReportById } from "@/lib/actions/report.actions";
 import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
 import { getSession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function EditReportPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = rawId.trim();
+
+  if (!id) notFound();
+
   const session = await getSession();
   if (!session) redirect(`/login?from=/report/${id}/edit`);
 
