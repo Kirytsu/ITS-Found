@@ -12,6 +12,8 @@ import { Phone, MapPin, Pencil, Trash2, AlertTriangle, CheckCircle } from "lucid
 import Button from "@/components/ui/Button";
 import { ToastContainer, useToast } from "@/components/ui/Toast";
 import { deleteReport, resolveReport } from "@/lib/actions/report.actions";
+import { createClaim, cancelClaim } from "@/lib/actions/claim.actions";
+import FileUpload from "@/components/ui/FileUpload";
 
 interface Props {
   report: {
@@ -22,6 +24,24 @@ interface Props {
   };
   isOwner: boolean;
   isAdmin: boolean;
+  userId?: string;
+  userRole?: string;
+  hasClaim: boolean;
+  claimUserId?: string;
+  claimantName?: string;
+}
+
+/** Upload file to /api/upload — returns URL or throws */
+async function uploadImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch("/api/upload", { method: "POST", body: fd });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? "Upload gagal.");
+  }
+  const { url } = await res.json();
+  return url as string;
 }
 
 /** Sticky bar wrapper — excludes desktop sidebar */
@@ -35,12 +55,29 @@ function StickyBar({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function ReportDetailActions({ report, isOwner, isAdmin }: Props) {
+export default function ReportDetailActions({
+  report,
+  isOwner,
+  isAdmin,
+  userId,
+  userRole,
+  hasClaim,
+  claimUserId,
+  claimantName,
+}: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showConfirm, setShowConfirm] = useState(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
-  const [takerName, setTakerName] = useState("");
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [takerName, setTakerName] = useState(claimantName ?? "");
+  
+  // Claim state
+  const [claimFile, setClaimFile] = useState<File | null>(null);
+  const [claimNotes, setClaimNotes] = useState("");
+  const [claimFileError, setClaimFileError] = useState("");
+
   const { toasts, addToast, dismiss } = useToast();
 
   const executeDelete = () => {
@@ -73,6 +110,46 @@ export default function ReportDetailActions({ report, isOwner, isAdmin }: Props)
     });
   };
 
+  const executeCreateClaim = () => {
+    if (!claimFile) {
+      setClaimFileError("Foto bukti wajib diunggah.");
+      return;
+    }
+    setClaimFileError("");
+
+    startTransition(async () => {
+      try {
+        const photoUrl = await uploadImage(claimFile);
+        const result = await createClaim(report.id, photoUrl, claimNotes);
+        if (result.success) {
+          addToast(result.message, "success");
+          setShowClaimModal(false);
+          setClaimFile(null);
+          setClaimNotes("");
+          router.refresh();
+        } else {
+          addToast(result.message, "error");
+        }
+      } catch (err: any) {
+        addToast(err.message || "Gagal mengajukan klaim.", "error");
+      }
+    });
+  };
+
+  const executeCancelClaim = () => {
+    startTransition(async () => {
+      const result = await cancelClaim(report.id);
+      if (result.success) {
+        addToast(result.message, "success");
+        setShowCancelConfirm(false);
+        router.refresh();
+      } else {
+        addToast(result.message, "error");
+        setShowCancelConfirm(false);
+      }
+    });
+  };
+
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
@@ -101,26 +178,51 @@ export default function ReportDetailActions({ report, isOwner, isAdmin }: Props)
         </StickyBar>
       )}
 
-      {/* Other user viewing a FOUND report — show contact + location */}
+      {/* Other user viewing a FOUND report — show contact + location + claim if logged in */}
       {report.type === "FOUND" && report.facility && report.status === "PUBLISHED" && !(isOwner || isAdmin) && (
         <StickyBar>
+          {/* Claim Button: logged in, report not claimed, not admin */}
+          {userId && !hasClaim && userRole !== "ADMIN" && (
+            <Button
+              variant="primary" size="full" className="rounded-full flex-1"
+              icon={<CheckCircle size={15} />}
+              onClick={() => setShowClaimModal(true)}
+            >
+              Klaim Barang
+            </Button>
+          )}
+
+          {/* Cancel Claim Button: claimant, report claimed, not resolved */}
+          {userId && hasClaim && userId === claimUserId && (
+            <Button
+              variant="destructive" size="full" className="rounded-full flex-1"
+              icon={<AlertTriangle size={15} />}
+              onClick={() => setShowCancelConfirm(true)}
+            >
+              Batalkan Klaim
+            </Button>
+          )}
+
           <a href={`tel:${report.facility.phone.replace(/\D/g, "")}`} className="flex-1">
-            <Button variant="primary" size="full" className="rounded-full" icon={<Phone size={15} />}>
-              Hubungi Fasilitas
+            <Button
+              variant={userId && (!hasClaim && userRole !== "ADMIN" || userId === claimUserId) ? "outline" : "primary"}
+              size="full" className="rounded-full flex justify-center items-center" icon={<Phone size={15} />}
+            >
+              {userId && (!hasClaim && userRole !== "ADMIN" || userId === claimUserId) ? "Hubungi" : "Hubungi Fasilitas"}
             </Button>
           </a>
           <a
             href={`https://maps.google.com/?q=${encodeURIComponent(report.facility.name + " ITS Surabaya")}`}
             target="_blank" rel="noopener noreferrer" className="flex-1"
           >
-            <Button variant="secondary" size="full" className="rounded-full" icon={<MapPin size={15} />}>
+            <Button variant="secondary" size="full" className="rounded-full flex justify-center items-center" icon={<MapPin size={15} />}>
               Lokasi
             </Button>
           </a>
         </StickyBar>
       )}
 
-      {/* Custom Confirm Modal */}
+      {/* Custom Confirm Modal (Delete) */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in zoom-in-95 duration-200">
@@ -197,6 +299,97 @@ export default function ReportDetailActions({ report, isOwner, isAdmin }: Props)
                 className="flex-1 py-4 text-sm font-bold text-teal-600 hover:bg-teal-50 transition-colors"
               >
                 {isPending ? "Memproses..." : "Ya, Selesai"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Claim Modal */}
+      {showClaimModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
+              <div className="flex flex-col items-center text-center gap-1">
+                <CheckCircle size={28} className="text-teal-500 mb-1" />
+                <h3 className="text-lg font-bold text-gray-900">Klaim Barang</h3>
+                <p className="text-xs text-gray-500">
+                  Ajukan klaim kepemilikan barang ini. Pastikan Anda mengunggah bukti valid.
+                </p>
+              </div>
+
+              <FileUpload
+                label="Foto Bukti"
+                onFileChange={setClaimFile}
+                error={claimFileError}
+              />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-gray-900">Catatan Tambahan (Opsional)</label>
+                <textarea
+                  value={claimNotes}
+                  onChange={(e) => setClaimNotes(e.target.value)}
+                  placeholder="Masukkan deskripsi tambahan atau pesan khusus..."
+                  rows={3}
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400"
+                />
+              </div>
+            </div>
+            
+            <div className="flex border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setShowClaimModal(false);
+                  setClaimFile(null);
+                  setClaimNotes("");
+                  setClaimFileError("");
+                }}
+                disabled={isPending}
+                className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <div className="w-[1px] bg-gray-100" />
+              <button
+                onClick={executeCreateClaim}
+                disabled={isPending}
+                className="flex-1 py-4 text-sm font-bold text-teal-600 hover:bg-teal-50 transition-colors"
+              >
+                {isPending ? "Memproses..." : "Ajukan Klaim"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Claim Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-2">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">Batalkan Klaim?</h3>
+              <p className="text-sm text-gray-500">
+                Apakah Anda yakin ingin membatalkan klaim untuk barang ini? Laporan ini akan terbuka kembali untuk diklaim oleh pengguna lain.
+              </p>
+            </div>
+            <div className="flex border-t border-gray-100">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={isPending}
+                className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <div className="w-[1px] bg-gray-100" />
+              <button
+                onClick={executeCancelClaim}
+                disabled={isPending}
+                className="flex-1 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+              >
+                {isPending ? "Membatalkan..." : "Ya, Batalkan"}
               </button>
             </div>
           </div>

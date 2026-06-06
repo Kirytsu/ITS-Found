@@ -36,7 +36,11 @@ export default function ReportCard({ report, showTypeBadge = false }: ReportCard
           <span className="text-xs text-gray-500 truncate">{report.area.name}</span>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {showTypeBadge && <Badge variant={typeToBadgeVariant(report.type)} />}
-            <Badge variant={statusToBadgeVariant(report.status)} />
+            {report.status === "PUBLISHED" && report.claim ? (
+              <Badge variant="claimed" />
+            ) : (
+              <Badge variant={statusToBadgeVariant(report.status)} />
+            )}
           </div>
         </div>
 

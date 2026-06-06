@@ -14,6 +14,7 @@ import type {
   ReportType,
   ReportStatus,
   Role,
+  Claim,
 } from "@/generated/prisma";
 
 
@@ -36,6 +37,9 @@ export type ReportWithRelations = Report & {
   facility: Facility | null;
   verifiedBy: { name: string } | null;
   resolvedBy: { name: string } | null;
+  claim?: (Claim & {
+    user: Pick<User, "id" | "name" | "email">;
+  }) | null;
 };
 
 // ─── Notification with matched report ────────────────────────────────────────

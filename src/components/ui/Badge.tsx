@@ -4,7 +4,7 @@
  */
 import { clsx } from "clsx";
 
-type BadgeVariant = "active" | "unverified" | "resolved" | "rejected" | "lost" | "found";
+type BadgeVariant = "active" | "unverified" | "resolved" | "rejected" | "lost" | "found" | "claimed";
 
 interface BadgeProps {
   variant: BadgeVariant;
@@ -19,6 +19,7 @@ const variantConfig: Record<BadgeVariant, { classes: string; defaultLabel: strin
   rejected:   { classes: "bg-red-500 text-white",    defaultLabel: "Ditolak" },
   lost:       { classes: "bg-orange-500 text-white", defaultLabel: "Kehilangan" },
   found:      { classes: "bg-blue-500 text-white",   defaultLabel: "Penemuan" },
+  claimed:    { classes: "bg-amber-500 text-white",  defaultLabel: "Sudah Diklaim" },
 };
 
 export default function Badge({ variant, label, className }: BadgeProps) {

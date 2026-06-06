@@ -44,6 +44,19 @@ export default function ReportTimeline({ report }: { report: ReportWithRelations
           </div>
         )}
 
+        {/* Diklaim (if FOUND and has claim) */}
+        {report.type === "FOUND" && report.claim && (
+          <div className="relative pl-8">
+            <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-amber-50 border-2 border-white flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-amber-500" />
+            </div>
+            <p className="text-sm font-medium text-gray-900">
+              Diklaim oleh <span className="font-bold">{report.claim.user.name}</span>
+            </p>
+            <p className="text-xs text-gray-500">{formatTimelineDate(report.claim.createdAt)}</p>
+          </div>
+        )}
+
         {/* Diselesaikan / Diambil */}
         {report.status === "RESOLVED" && report.resolvedAt && report.resolvedBy && (
           <div className="relative pl-8">

@@ -64,6 +64,7 @@ model User {
   verifiedReports Report[]     @relation("VerifiedReports")
   resolvedReports Report[]     @relation("ResolvedReports")
   notifications Notification[]
+  claims        Claim[]
   createdAt     DateTime       @default(now())
 }
 
@@ -102,6 +103,7 @@ model Report {
   takerName      String?      // Name of the person who claimed the item (for FOUND reports)
 
   notifications  Notification[]
+  claim          Claim?
 
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -120,4 +122,16 @@ model Notification {
   matchedReport   Report?  @relation(fields: [matchedReportId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+model Claim {
+  id        String   @id @default(cuid())
+  reportId  String   @unique
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photoUrl  String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

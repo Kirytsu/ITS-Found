@@ -16,6 +16,11 @@ const REPORT_INCLUDE = {
   facility: true,
   verifiedBy: { select: { name: true } },
   resolvedBy: { select: { name: true } },
+  claim: {
+    include: {
+      user: { select: { id: true, name: true, email: true } }
+    }
+  },
 } as const;
 
 /** Returns all FOUND reports waiting for admin verification. */

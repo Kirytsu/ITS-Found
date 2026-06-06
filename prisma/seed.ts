@@ -390,6 +390,11 @@ async function main() {
   // ─── 3. Admin Test Accounts ────────────────────────────────────────────────
   const adminAccounts = [
     {
+      name: "Admin ITS Default",
+      email: "admin@its.ac.id",
+      password: "admin123",
+    },
+    {
       name: "Admin ITS 1",
       email: "admin1@its.ac.id",
       password: "admin123",
