@@ -93,12 +93,13 @@ export default function ReportDetailActions({
   };
 
   const executeResolve = () => {
-    if (report.type === "FOUND" && !takerName.trim()) {
+    const finalTakerName = hasClaim ? (claimantName ?? "") : takerName;
+    if (report.type === "FOUND" && !finalTakerName.trim()) {
       addToast("Nama pengambil wajib diisi.", "error");
       return;
     }
     startTransition(async () => {
-      const result = await resolveReport(report.id, takerName);
+      const result = await resolveReport(report.id, finalTakerName);
       if (result.success) {
         addToast(result.message, "success");
         setShowResolveConfirm(false);
@@ -268,6 +269,10 @@ export default function ReportDetailActions({
               {report.type === "LOST" ? (
                 <p className="text-sm text-gray-500">
                   Apakah Anda yakin laporan ini telah selesai? (Misalnya barang sudah ditemukan sendiri). Status laporan akan diubah dan tidak dapat dikembalikan.
+                </p>
+              ) : hasClaim ? (
+                <p className="text-sm text-gray-500">
+                  Apakah Anda yakin ingin menyelesaikan laporan ini dan menyerahkan barang kepada pengklaim <strong>{claimantName}</strong>? Status laporan akan diubah menjadi selesai.
                 </p>
               ) : (
                 <div className="flex flex-col gap-2 w-full text-left mt-2">
