@@ -78,9 +78,9 @@ export async function createClaim(
       message: "Klaim berhasil diajukan! Silakan hubungi fasilitas penitipan terkait untuk pengambilan barang fisik.",
       data: { claimId: claim.id },
     };
-  } catch (error: any) {
+  } catch (error) {
     // Handle database unique constraint (race condition)
-    if (error.code === "P2002") {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
       return {
         success: false,
         message: "Barang ini baru saja diklaim oleh pengguna lain.",

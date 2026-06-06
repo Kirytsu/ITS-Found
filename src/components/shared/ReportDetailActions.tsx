@@ -73,6 +73,13 @@ export default function ReportDetailActions({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [takerName, setTakerName] = useState(claimantName ?? "");
   
+  // Anonymous Taker state
+  const [takerPhone, setTakerPhone] = useState("");
+  const [takerIdCard, setTakerIdCard] = useState("");
+  const [takerNotes, setTakerNotes] = useState("");
+  const [takerPhotoFile, setTakerPhotoFile] = useState<File | null>(null);
+  const [takerPhotoError, setTakerPhotoError] = useState("");
+
   // Claim state
   const [claimFile, setClaimFile] = useState<File | null>(null);
   const [claimNotes, setClaimNotes] = useState("");
@@ -98,15 +105,55 @@ export default function ReportDetailActions({
       addToast("Nama pengambil wajib diisi.", "error");
       return;
     }
+
+    if (report.type === "FOUND" && !hasClaim) {
+      if (!takerPhone.trim()) {
+        addToast("Nomor HP pengambil wajib diisi.", "error");
+        return;
+      }
+      if (!takerIdCard.trim()) {
+        addToast("Nomor Identitas wajib diisi.", "error");
+        return;
+      }
+      if (!takerPhotoFile) {
+        setTakerPhotoError("Foto serah terima wajib diunggah.");
+        addToast("Foto serah terima wajib diunggah.", "error");
+        return;
+      }
+    }
+    setTakerPhotoError("");
+
     startTransition(async () => {
-      const result = await resolveReport(report.id, finalTakerName);
-      if (result.success) {
-        addToast(result.message, "success");
-        setShowResolveConfirm(false);
-        router.refresh();
-      } else {
-        addToast(result.message, "error");
-        setShowResolveConfirm(false);
+      try {
+        let finalTakerPhotoUrl = "";
+        if (report.type === "FOUND" && !hasClaim && takerPhotoFile) {
+          finalTakerPhotoUrl = await uploadImage(takerPhotoFile);
+        }
+
+        const result = await resolveReport(
+          report.id,
+          finalTakerName,
+          report.type === "FOUND" && !hasClaim ? takerPhone : undefined,
+          report.type === "FOUND" && !hasClaim ? takerIdCard : undefined,
+          report.type === "FOUND" && !hasClaim ? finalTakerPhotoUrl : undefined,
+          report.type === "FOUND" && !hasClaim ? takerNotes : undefined
+        );
+
+        if (result.success) {
+          addToast(result.message, "success");
+          setShowResolveConfirm(false);
+          // Reset states
+          setTakerPhone("");
+          setTakerIdCard("");
+          setTakerNotes("");
+          setTakerPhotoFile(null);
+          router.refresh();
+        } else {
+          addToast(result.message, "error");
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Gagal memproses penyelesaian laporan.";
+        addToast(msg, "error");
       }
     });
   };
@@ -131,8 +178,9 @@ export default function ReportDetailActions({
         } else {
           addToast(result.message, "error");
         }
-      } catch (err: any) {
-        addToast(err.message || "Gagal mengajukan klaim.", "error");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Gagal mengajukan klaim.";
+        addToast(msg, "error");
       }
     });
   };
@@ -260,38 +308,93 @@ export default function ReportDetailActions({
       {/* Custom Confirm Resolve Modal */}
       {showResolveConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in zoom-in-95 duration-200">
-            <div className="p-6 flex flex-col items-center text-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 mb-2">
-                <CheckCircle size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900">Tandai Selesai?</h3>
-              {report.type === "LOST" ? (
-                <p className="text-sm text-gray-500">
-                  Apakah Anda yakin laporan ini telah selesai? (Misalnya barang sudah ditemukan sendiri). Status laporan akan diubah dan tidak dapat dikembalikan.
-                </p>
-              ) : hasClaim ? (
-                <p className="text-sm text-gray-500">
-                  Apakah Anda yakin ingin menyelesaikan laporan ini dan menyerahkan barang kepada pengklaim <strong>{claimantName}</strong>? Status laporan akan diubah menjadi selesai.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2 w-full text-left mt-2">
-                  <p className="text-sm text-gray-500 text-center mb-1">
-                    Silakan masukkan nama pihak pengambil untuk menyelesaikan laporan penemuan ini.
+          <div className={`bg-white rounded-2xl w-full ${report.type === "FOUND" && !hasClaim ? "max-w-md" : "max-w-sm"} overflow-hidden shadow-xl animate-in zoom-in-95 duration-200`}>
+            <div className="p-6 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
+              <div className="flex flex-col items-center text-center gap-1">
+                <CheckCircle size={28} className="text-teal-500 mb-1" />
+                <h3 className="text-lg font-bold text-gray-900">Tandai Selesai?</h3>
+                {report.type === "LOST" && (
+                  <p className="text-sm text-gray-500">
+                    Apakah Anda yakin laporan ini telah selesai? (Misalnya barang sudah ditemukan sendiri). Status laporan akan diubah dan tidak dapat dikembalikan.
                   </p>
-                  <input
-                    type="text"
-                    value={takerName}
-                    onChange={(e) => setTakerName(e.target.value)}
-                    placeholder="Nama Pengambil"
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                )}
+                {report.type === "FOUND" && hasClaim && (
+                  <p className="text-sm text-gray-500">
+                    Apakah Anda yakin ingin menyelesaikan laporan ini dan menyerahkan barang kepada pengklaim <strong>{claimantName}</strong>? Status laporan akan diubah menjadi selesai.
+                  </p>
+                )}
+                {report.type === "FOUND" && !hasClaim && (
+                  <p className="text-sm text-gray-500">
+                    Silakan isi identitas pengambil barang (offline) di bawah untuk menyelesaikan laporan ini.
+                  </p>
+                )}
+              </div>
+
+              {report.type === "FOUND" && !hasClaim && (
+                <div className="flex flex-col gap-4 text-left">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-semibold text-gray-900">Nama Lengkap</label>
+                    <input
+                      type="text"
+                      value={takerName}
+                      onChange={(e) => setTakerName(e.target.value)}
+                      placeholder="Nama Lengkap Pengambil"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-semibold text-gray-900">Nomor HP</label>
+                    <input
+                      type="text"
+                      value={takerPhone}
+                      onChange={(e) => setTakerPhone(e.target.value)}
+                      placeholder="Nomor HP Aktif"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-semibold text-gray-900">Nomor Identitas (NIK/NRP/KTM)</label>
+                    <input
+                      type="text"
+                      value={takerIdCard}
+                      onChange={(e) => setTakerIdCard(e.target.value)}
+                      placeholder="Contoh: 5025211001"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+
+                  <FileUpload
+                    label="Foto Bukti"
+                    onFileChange={setTakerPhotoFile}
+                    error={takerPhotoError}
                   />
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-semibold text-gray-900">Catatan (Opsional)</label>
+                    <textarea
+                      value={takerNotes}
+                      onChange={(e) => setTakerNotes(e.target.value)}
+                      placeholder="Catatan tambahan mengenai serah terima..."
+                      rows={2}
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400"
+                    />
+                  </div>
                 </div>
               )}
             </div>
+
             <div className="flex border-t border-gray-100">
               <button
-                onClick={() => setShowResolveConfirm(false)}
+                onClick={() => {
+                  setShowResolveConfirm(false);
+                  setTakerPhone("");
+                  setTakerIdCard("");
+                  setTakerNotes("");
+                  setTakerPhotoFile(null);
+                  setTakerPhotoError("");
+                }}
                 disabled={isPending}
                 className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
               >

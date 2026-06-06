@@ -66,10 +66,10 @@ export async function verifyReport(id: string): Promise<ActionResult> {
 
   await db.report.update({
     where: { id },
-    data: {
+    data: { 
       status: "PUBLISHED",
       verifiedAt: new Date(),
-      verifiedById: session.userId,
+      verifiedBy: { connect: { id: session.userId } },
     },
   });
 

@@ -70,12 +70,8 @@ export async function createReport(
     await createMatchNotifications(report.id, matches);
   }
 
-  // Revalidate all relevant paths
   revalidatePath("/");
-  revalidatePath("/lost");
-  revalidatePath("/found");
-  revalidatePath("/my-reports");
-  revalidatePath(`/report/${report.id}`);
+  revalidatePath(input.type === "LOST" ? "/lost" : "/found");
 
   return {
     success: true,
@@ -109,12 +105,12 @@ export async function getPublicReports(
       : {}),
     ...(search?.trim()
       ? {
-        OR: [
-          { title: { contains: search } },
-          { description: { contains: search } },
-          { locationDetail: { contains: search } },
-        ],
-      }
+          OR: [
+            { title: { contains: search } },
+            { description: { contains: search } },
+            { locationDetail: { contains: search } },
+          ],
+        }
       : {}),
   };
 
@@ -157,12 +153,12 @@ export async function getMyReports(
     ...(status && { status }),
     ...(search?.trim()
       ? {
-        OR: [
-          { title: { contains: search } },
-          { description: { contains: search } },
-          { locationDetail: { contains: search } },
-        ],
-      }
+          OR: [
+            { title: { contains: search } },
+            { description: { contains: search } },
+            { locationDetail: { contains: search } },
+          ],
+        }
       : {}),
   };
 
@@ -180,11 +176,8 @@ export async function getMyReports(
 export async function getReportById(
   id: string
 ): Promise<ReportWithRelations | null> {
-  const normalizedId = id.trim();
-  if (!normalizedId) return null;
-
   const report = await db.report.findUnique({
-    where: { id: normalizedId },
+    where: { id },
     include: REPORT_INCLUDE,
   });
   return report as ReportWithRelations | null;
@@ -210,9 +203,13 @@ export async function updateReport(
     where: { id },
     data: {
       ...(input.title && { title: input.title.trim() }),
-      ...(input.categoryId && { categoryId: input.categoryId }),
-      ...(input.areaId && { areaId: input.areaId }),
-      ...(input.facilityId !== undefined && { facilityId: input.facilityId }),
+      ...(input.categoryId && { category: { connect: { id: input.categoryId } } }),
+      ...(input.areaId && { area: { connect: { id: input.areaId } } }),
+      ...(input.facilityId !== undefined && { 
+        facility: input.facilityId 
+          ? { connect: { id: input.facilityId } } 
+          : { disconnect: true } 
+      }),
       ...(input.locationDetail && { locationDetail: input.locationDetail.trim() }),
       ...(input.description && { description: input.description.trim() }),
       ...(input.incidentDate && { incidentDate: input.incidentDate }),
@@ -220,10 +217,8 @@ export async function updateReport(
     },
   });
 
-  // Revalidate all relevant paths
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");
-  revalidatePath("/lost");
   revalidatePath("/found");
   revalidatePath("/");
 
@@ -247,7 +242,6 @@ export async function deleteReport(id: string): Promise<ActionResult> {
   await db.notification.deleteMany({ where: { matchedReportId: id } });
   await db.report.delete({ where: { id } });
 
-  // Revalidate all relevant paths
   revalidatePath("/my-reports");
   revalidatePath("/lost");
   revalidatePath("/found");
@@ -257,9 +251,21 @@ export async function deleteReport(id: string): Promise<ActionResult> {
 }
 
 // ── Resolve ───────────────────────────────────────────────────────────────────
-export async function resolveReport(id: string, takerName?: string): Promise<ActionResult> {
+export async function resolveReport(
+  id: string,
+  takerName?: string,
+  takerPhone?: string,
+  takerIdCard?: string,
+  takerPhotoUrl?: string,
+  takerNotes?: string
+): Promise<ActionResult> {
   const session = await requireSession();
-  const report = await db.report.findUnique({ where: { id } });
+  
+  // Find report along with claim to verify status
+  const report = await db.report.findUnique({
+    where: { id },
+    include: { claim: true },
+  });
 
   if (!report) return { success: false, message: "Laporan tidak ditemukan." };
 
@@ -267,8 +273,18 @@ export async function resolveReport(id: string, takerName?: string): Promise<Act
     if (session.role !== "ADMIN") {
       return { success: false, message: "Hanya Admin yang dapat menyelesaikan laporan penemuan." };
     }
-    if (!takerName?.trim()) {
-      return { success: false, message: "Nama pengambil wajib diisi." };
+    
+    // If it has a claim, only takerName is needed (populated automatically from claimant)
+    if (report.claim) {
+      if (!takerName?.trim()) {
+        return { success: false, message: "Nama pengambil wajib diisi." };
+      }
+    } else {
+      // If no claim, we require all offline details
+      if (!takerName?.trim()) return { success: false, message: "Nama Lengkap pengambil wajib diisi." };
+      if (!takerPhone?.trim()) return { success: false, message: "Nomor HP pengambil wajib diisi." };
+      if (!takerIdCard?.trim()) return { success: false, message: "Nomor Identitas (NIK/NRP/KTM) wajib diisi." };
+      if (!takerPhotoUrl?.trim()) return { success: false, message: "Foto serah terima/pengambilan wajib diunggah." };
     }
   } else {
     if (report.authorId !== session.userId && session.role !== "ADMIN") {
@@ -280,21 +296,22 @@ export async function resolveReport(id: string, takerName?: string): Promise<Act
     return { success: false, message: "Laporan sudah berstatus selesai." };
   }
 
-  await db.report.update({
-    where: { id },
-    data: {
+  await db.report.update({ 
+    where: { id }, 
+    data: { 
       status: "RESOLVED",
       resolvedAt: new Date(),
-      resolvedById: session.userId,
+      resolvedBy: { connect: { id: session.userId } },
       takerName: report.type === "FOUND" ? takerName?.trim() : null,
-    }
+      takerPhone: report.type === "FOUND" && !report.claim ? takerPhone?.trim() : null,
+      takerIdCard: report.type === "FOUND" && !report.claim ? takerIdCard?.trim() : null,
+      takerPhotoUrl: report.type === "FOUND" && !report.claim ? takerPhotoUrl?.trim() : null,
+      takerNotes: report.type === "FOUND" && !report.claim ? takerNotes?.trim() || null : null,
+    } 
   });
 
-  // Revalidate all relevant paths
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");
-  revalidatePath("/lost");
-  revalidatePath("/found");
   revalidatePath("/");
 
   return { success: true, message: "Laporan berhasil ditandai selesai." };

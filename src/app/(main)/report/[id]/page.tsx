@@ -87,7 +87,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 <div>
                   <span className="text-xs text-gray-400 block">Catatan Tambahan</span>
                   <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-100 italic leading-relaxed mt-1">
-                    "{report.claim.notes}"
+                    &ldquo;{report.claim.notes}&rdquo;
                   </p>
                 </div>
               )}
@@ -101,6 +101,65 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 <img src={report.claim.photoUrl} alt="Bukti Klaim" className="w-full h-full object-cover" />
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Offline Taker Info Card */}
+      {isAdmin && report.status === "RESOLVED" && report.type === "FOUND" && !report.claim && report.takerPhone && (
+        <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm flex flex-col p-5 gap-4">
+          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+            Detail Serah Terima (Offline)
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Details */}
+            <div className="flex flex-col gap-3">
+              <div>
+                <span className="text-xs text-gray-400 block">Nama Lengkap</span>
+                <span className="text-sm font-semibold text-gray-900">{report.takerName}</span>
+              </div>
+              <div>
+                <span className="text-xs text-gray-400 block">Nomor HP</span>
+                <span className="text-sm font-medium text-gray-900">{report.takerPhone}</span>
+              </div>
+              <div>
+                <span className="text-xs text-gray-400 block">Nomor Identitas (NIK/NRP/KTM)</span>
+                <span className="text-sm font-medium text-gray-900">{report.takerIdCard}</span>
+              </div>
+              <div>
+                <span className="text-xs text-gray-400 block">Tanggal Penyerahan</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {report.resolvedAt && new Date(report.resolvedAt).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  })} WIB
+                </span>
+              </div>
+              {report.takerNotes && (
+                <div>
+                  <span className="text-xs text-gray-400 block">Catatan</span>
+                  <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-100 italic leading-relaxed mt-1">
+                    &ldquo;{report.takerNotes}&rdquo;
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Image proof */}
+            {report.takerPhotoUrl && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs text-gray-400">Foto Bukti</span>
+                <div className="relative w-full h-44 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={report.takerPhotoUrl} alt="Bukti Serah Terima Offline" className="w-full h-full object-cover" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

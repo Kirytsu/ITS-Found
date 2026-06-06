@@ -101,6 +101,10 @@ model Report {
   resolvedBy     User?        @relation("ResolvedReports", fields: [resolvedById], references: [id])
 
   takerName      String?      // Name of the person who claimed the item (for FOUND reports)
+  takerPhone     String?
+  takerIdCard    String?
+  takerPhotoUrl  String?
+  takerNotes     String?
 
   notifications  Notification[]
   claim          Claim?

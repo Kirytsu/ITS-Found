@@ -20,10 +20,10 @@ interface ReportMetaCardProps {
 
 export default function ReportMetaCard({ report }: ReportMetaCardProps) {
   const isClaimed = report.status === "PUBLISHED" && !!report.claim;
-  const badgeVariant = isClaimed ? "claimed" : statusToBadgeVariant(report.status);
+  const badgeVariant = (isClaimed ? "claimed" : statusToBadgeVariant(report.status)) as "claimed" | "active" | "unverified" | "resolved" | "rejected";
 
   const rows: MetaRow[] = [
-    { label: "Status",           value: <Badge variant={badgeVariant as any} /> },
+    { label: "Status",           value: <Badge variant={badgeVariant} /> },
     {
       label: "Jenis Kasus",
       value: (
