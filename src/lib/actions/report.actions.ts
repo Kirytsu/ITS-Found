@@ -6,7 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireSession } from "../auth";
-import { findMatches, createMatchNotifications } from "./notification.actions";
+import { findMatches, createMatchNotifications, notifyAdminsNewFoundReport, notifyClaimerReportResolved } from "./notification.actions";
 import type {
   ActionResult,
   CreateReportInput,
@@ -63,6 +63,11 @@ export async function createReport(
       authorId: session.userId,
     },
   });
+
+  // Notify admins if FOUND report (needs verification)
+  if (input.type === "FOUND") {
+    await notifyAdminsNewFoundReport(report.id, session.name);
+  }
 
   // Smart Match: only run for PUBLISHED reports
   if (status === "PUBLISHED") {
@@ -309,6 +314,11 @@ export async function resolveReport(
       takerNotes: report.type === "FOUND" && !report.claim ? takerNotes?.trim() || null : null,
     } 
   });
+
+  // Notify claimer if FOUND report with claim is resolved
+  if (report.type === "FOUND" && report.claim && takerName) {
+    await notifyClaimerReportResolved(id, takerName, takerPhone?.trim() || "No phone provided");
+  }
 
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");

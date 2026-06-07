@@ -30,11 +30,22 @@ function formatTime(date: Date): string {
 export default async function NotificationsPage() {
     const session = await requireSession();
     const notifications = await getMyNotifications(session.userId);
+    const isAdmin = session.role === "ADMIN";
 
     // Mark all notifications as read
     if (notifications.some(n => !n.isRead)) {
         await markAllNotificationsAsRead(session.userId);
     }
+
+    // Determine navigation link based on notification type and user role
+    const getNotificationLink = (message: string, reportId: string): string => {
+        // Admin notifications about new FOUND reports → verification page
+        if (isAdmin && message.includes("Laporan penemuan baru")) {
+            return "/admin/verification";
+        }
+        // All other notifications (including claims) → report detail page
+        return `/report/${reportId}`;
+    };
 
     return (
         <div className="flex flex-col gap-6">
@@ -79,12 +90,12 @@ export default async function NotificationsPage() {
                                         </p>
                                     </div>
 
-                                    {/* Action Button - Link to matched report */}
+                                    {/* Action Button - Link to matched report or verification */}
                                     {matchedReport && (
                                         <Link
-                                            href={`/report/${matchedReport.id}`}
+                                            href={getNotificationLink(notification.message, matchedReport.id)}
                                             className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg hover:bg-white/50 transition-colors"
-                                            title="Lihat laporan"
+                                            title={isAdmin && notification.message.includes("Laporan penemuan baru") ? "Verifikasi laporan" : "Lihat laporan"}
                                         >
                                             <ArrowRight size={18} className="text-gray-600" />
                                         </Link>
@@ -94,7 +105,7 @@ export default async function NotificationsPage() {
                                 {/* Matched Report Preview */}
                                 {matchedReport && (
                                     <Link
-                                        href={`/report/${matchedReport.id}`}
+                                        href={getNotificationLink(notification.message, matchedReport.id)}
                                         className="mt-3 p-3 rounded-lg bg-white/70 hover:bg-white border border-gray-200/50 flex items-start gap-3 transition-colors"
                                     >
                                         <div className="flex-shrink-0">

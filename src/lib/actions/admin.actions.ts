@@ -6,7 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireAdmin } from "../auth";
-import { findMatches, createMatchNotifications } from "./notification.actions";
+import { findMatches, createMatchNotifications, notifyReporterVerified, notifyClaimerReportResolved } from "./notification.actions";
 import type { ActionResult, ReportWithRelations } from "../../types";
 
 const REPORT_INCLUDE = {
@@ -72,6 +72,9 @@ export async function verifyReport(id: string): Promise<ActionResult> {
       verifiedBy: { connect: { id: session.userId } },
     },
   });
+
+  // Notify report author that their FOUND report was verified
+  await notifyReporterVerified(id);
 
   // Run Smart Match now that the FOUND report is published
   const matches = await findMatches(id);

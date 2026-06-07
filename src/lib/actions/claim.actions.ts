@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireSession } from "../auth";
+import { createClaimNotification, createClaimCancelledNotification, notifyAdminsClaimMade } from "./notification.actions";
 import type { ActionResult } from "../../types";
 
 /**
@@ -67,6 +68,12 @@ export async function createClaim(
         notes: notes?.trim() || null,
       },
     });
+
+    // 4.5 Send notifications
+    // Notify report author about the claim
+    await createClaimNotification(reportId, session.userId);
+    // Notify admins to mark this report as resolved after verification
+    await notifyAdminsClaimMade(reportId, session.name);
 
     // 5. Revalidate relevant paths
     revalidatePath(`/report/${reportId}`);
@@ -131,6 +138,14 @@ export async function cancelClaim(reportId: string): Promise<ActionResult> {
     await db.claim.delete({
       where: { id: claim.id },
     });
+
+    // 4.5 Send notification to report author
+    const claimant = await db.user.findUnique({
+      where: { id: claim.userId },
+    });
+    if (claimant) {
+      await createClaimCancelledNotification(reportId, claimant.name);
+    }
 
     // 5. Revalidate paths
     revalidatePath(`/report/${reportId}`);

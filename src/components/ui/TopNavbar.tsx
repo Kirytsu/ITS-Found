@@ -3,14 +3,14 @@
  * src/components/ui/TopNavbar.tsx
  *
  * Nav structure (3 sections):
- *   Section 1 — (unlabeled): Dashboard
- *   Section 2 — "Laporan": Kehilangan | Penemuan | Laporan Saya
- *   Section 3 — "Lapor": Lapor Kehilangan | Lapor Penemuan
- *   Section 4 — bottom: Profil | Notifikasi | Pengaturan | Keluar
+ * Section 1 — (unlabeled): Dashboard
+ * Section 2 — "Laporan": Kehilangan | Penemuan | Laporan Saya
+ * Section 3 — "Lapor": Lapor Kehilangan | Lapor Penemuan
+ * Section 4 — bottom: Profil | Notifikasi | Pengaturan | Keluar
  *
  * All icons are monochrome gray — teal ONLY for active state.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -73,7 +73,7 @@ function buildSections(isAdmin?: boolean): NavSection[] {
 }
 
 /* ─────────────── NavLink ────────────────────────────────────────────────────── */
-function NavLink({ item, onClose }: { item: NavItemConfig; onClose?: () => void }) {
+function NavLink({ item, onClose, badge }: { item: NavItemConfig; onClose?: () => void; badge?: number }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -100,7 +100,7 @@ function NavLink({ item, onClose }: { item: NavItemConfig; onClose?: () => void 
       href={item.href}
       onClick={onClose}
       className={clsx(
-        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors relative",
         isActive
           ? "bg-teal-50 text-teal-700 font-semibold"
           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -113,20 +113,27 @@ function NavLink({ item, onClose }: { item: NavItemConfig; onClose?: () => void 
         strokeWidth={isActive ? 2.5 : 2}
       />
       {item.label}
+      {/* Badge for notifications */}
+      {!!badge && badge > 0 && (
+        <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500" />
+      )}
     </Link>
   );
 }
 
 /* ─────────────── SidebarContent ────────────────────────────────────────────── */
 function SidebarContent({
-  sections, userName, unreadCount, onClose, onLogout,
+  sections, userName, unreadCount, onClose, onLogout, hasClearedNotifs,
 }: {
   sections: NavSection[];
   userName?: string;
   unreadCount: number;
   onClose?: () => void;
   onLogout: () => void;
+  hasClearedNotifs: boolean;
 }) {
+  const displayCount = hasClearedNotifs ? 0 : unreadCount;
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Profile Card (Desktop) */}
@@ -148,10 +155,10 @@ function SidebarContent({
         <p className="text-xs text-gray-400 mt-0.5 truncate">
           {userName ? `Halo, ${userName}` : "Sistem Penemuan Barang ITS"}
         </p>
-        {unreadCount > 0 && (
+        {displayCount > 0 && (
           <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-red-600">
             <span className="h-1.5 w-1.5 rounded-full bg-red-500 inline-block" />
-            {unreadCount} notifikasi belum dibaca
+            {displayCount} notifikasi belum dibaca
           </span>
         )}
       </div>
@@ -181,6 +188,7 @@ function SidebarContent({
         <NavLink
           item={{ href: "/notifications", label: "Notifikasi", icon: Bell }}
           onClose={onClose}
+          badge={displayCount}
         />
         <NavLink
           item={{ href: "/settings", label: "Pengaturan", icon: Settings }}
@@ -202,18 +210,41 @@ function SidebarContent({
 export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNavbarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [hasClearedNotifs, setHasClearedNotifs] = useState(false);
+  
+  const pathname = usePathname();
   const router = useRouter();
   const sections = buildSections(isAdmin);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isCleared = localStorage.getItem("notifs_cleared") === "true";
+      if (isCleared) {
+        setHasClearedNotifs(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pathname === "/notifications") {
+      localStorage.setItem("notifs_cleared", "true");
+      setHasClearedNotifs(true);
+    }
+  }, [pathname]);
 
   const handleLogout = async () => {
     setDrawerOpen(false);
     setProfileDropdownOpen(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("notifs_cleared");
+    }
     await logoutUser();
     router.push("/login");
     router.refresh();
   };
 
-  const sidebarProps = { sections, userName, unreadCount, onLogout: handleLogout };
+  const sidebarProps = { sections, userName, unreadCount, onLogout: handleLogout, hasClearedNotifs };
+  const currentDisplayCount = hasClearedNotifs ? 0 : unreadCount;
 
   return (
     <>
@@ -238,7 +269,7 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
           >
             {userName ? userName.charAt(0).toUpperCase() : "?"}
           </button>
-          {unreadCount > 0 && (
+          {currentDisplayCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
           )}
 
@@ -270,9 +301,9 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
                   >
                     <Bell size={16} className="text-gray-400" />
                     Notifikasi
-                    {unreadCount > 0 && (
+                    {currentDisplayCount > 0 && (
                       <span className="ml-auto text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                        {unreadCount}
+                        {currentDisplayCount}
                       </span>
                     )}
                   </Link>
@@ -287,6 +318,9 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
                   <button
                     onClick={async () => {
                       setProfileDropdownOpen(false);
+                      if (typeof window !== "undefined") {
+                        localStorage.removeItem("notifs_cleared");
+                      }
                       await logoutUser();
                       router.push("/login");
                       router.refresh();
