@@ -74,7 +74,7 @@ Jalankan sinkronisasi skema database dan masukkan *master data* (Kategori, Area,
 ```bash
 npx prisma db push
 npx prisma generate
-npm run seed
+npx prisma db seed
 ```
 
 *Catatan: Akun Admin default yang dibuat oleh seeder adalah:*
