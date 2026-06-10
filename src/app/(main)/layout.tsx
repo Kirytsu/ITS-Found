@@ -30,7 +30,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   return (
     <>
       {/* Fixed sidebar (desktop) + fixed top-bar (mobile) */}
-      <Suspense fallback={<div className="h-14 bg-white" />}>
+      <Suspense fallback={<div className="h-14 bg-white dark:bg-gray-900" />}>
         <TopNavbar
           unreadCount={unreadCount}
           userName={session?.name}
@@ -43,7 +43,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         - On mobile:  no left offset (sidebar is a drawer)
         - On desktop: left offset = sidebar width (lg:pl-64)
       */}
-      <div className="lg:pl-64">
+      <div className="pt-14 lg:pt-0 min-h-screen bg-gray-50 dark:bg-gray-950">
         {/*
           Inner wrapper that:
           - On mobile:  top offset = mobile navbar height (pt-14)

@@ -1,10 +1,8 @@
 "use client";
-/**
- * src/app/(main)/settings/page.tsx
- */
 import { useState } from "react";
 import { Sun, Moon } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
+import { useTheme } from "@/components/shared/ThemeProvider";
 
 type Theme = "light" | "dark";
 type Language = "id" | "en";
@@ -17,7 +15,7 @@ function ToggleGroup<T extends string>({
       {options.map((opt) => (
         <button
           key={opt.value}
-          onClick={() => onChange(opt.value)}
+          onClick={() => { console.log("button clicked:", opt.value); onChange(opt.value); }}
           className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
             value === opt.value
               ? "border-teal-500 bg-teal-50 text-teal-700"
@@ -32,7 +30,7 @@ function ToggleGroup<T extends string>({
 }
 
 export default function SettingsPage() {
-  const [theme, setTheme]       = useState<Theme>("light");
+  const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState<Language>("id");
 
   return (
