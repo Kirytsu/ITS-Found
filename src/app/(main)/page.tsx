@@ -21,17 +21,17 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-8">
       {/* ── Hero — branded ITS-navy panel ── */}
-      <section className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white px-6 py-8 sm:py-10 shadow-lg shadow-brand-900/20 animate-fade-rise">
+      <section className="relative overflow-hidden rounded-3xl bg-brand-gradient text-[#ffffff] px-6 py-8 sm:py-10 shadow-lg shadow-brand-900/20 animate-fade-rise">
         <div aria-hidden className="absolute inset-0 bg-brand-grid opacity-50" />
         <div aria-hidden className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex flex-col gap-3">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-white/80" /> {t("dashboard.kicker")}
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#ffffff]/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#ffffff]/80" /> {t("dashboard.kicker")}
           </span>
           <h1 className="font-display text-3xl sm:text-4xl font-semibold leading-[1.1]">
             {t("dashboard.heroTitle")}
           </h1>
-          <p className="text-sm text-white/80 max-w-md leading-relaxed">
+          <p className="text-sm text-[#ffffff]/80 max-w-md leading-relaxed">
             {t("dashboard.heroSubtitle")}
           </p>
         </div>
@@ -40,50 +40,50 @@ export default async function HomePage() {
       {/* ── Action Cards — solid color = differentiate lapor vs lihat, orange = kehilangan, navy = penemuan ── */}
       <section className="grid grid-cols-2 gap-3">
         <Link href="/report/new?type=lost" className="block animate-fade-rise" style={{ animationDelay: "60ms" }}>
-          <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl bg-orange-600 hover:bg-orange-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-              <Search size={20} className="text-white" strokeWidth={2} />
+          <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl border-2 border-orange-600 dark:border-orange-700 bg-orange-600 hover:bg-orange-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                <Search size={20} className="text-[#ffffff]" strokeWidth={2} />
+              </div>
+              <p className="text-sm sm:text-base font-bold text-[#ffffff] leading-snug">{t("nav.reportLost")}</p>
             </div>
-            <div>
-              <p className="text-sm sm:text-base font-bold text-white leading-snug">{t("nav.reportLost")}</p>
-              <p className="text-xs text-white/75 leading-relaxed mt-0.5">{t("dashboard.cardReportLostDesc")}</p>
-            </div>
+            <p className="text-xs text-[#ffffff]/75 leading-relaxed">{t("dashboard.cardReportLostDesc")}</p>
           </div>
         </Link>
 
         <Link href="/report/new?type=found" className="block animate-fade-rise" style={{ animationDelay: "120ms" }}>
-          <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl bg-brand-600 hover:bg-brand-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-              <PackageOpen size={20} className="text-white" strokeWidth={2} />
+          <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl border-2 border-[#001f59] bg-[#001f59] hover:bg-[#001a4a] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                <PackageOpen size={20} className="text-[#ffffff]" strokeWidth={2} />
+              </div>
+              <p className="text-sm sm:text-base font-bold text-[#ffffff] leading-snug">{t("nav.reportFound")}</p>
             </div>
-            <div>
-              <p className="text-sm sm:text-base font-bold text-white leading-snug">{t("nav.reportFound")}</p>
-              <p className="text-xs text-white/75 leading-relaxed mt-0.5">{t("dashboard.cardReportFoundDesc")}</p>
-            </div>
+            <p className="text-xs text-[#ffffff]/75 leading-relaxed">{t("dashboard.cardReportFoundDesc")}</p>
           </div>
         </Link>
 
         <Link href="/lost" className="block animate-fade-rise" style={{ animationDelay: "180ms" }}>
           <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl border-2 border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/50 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-            <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center">
-              <ClipboardList size={20} className="text-orange-600 dark:text-orange-400" strokeWidth={2} />
-            </div>
-            <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center shrink-0">
+                <ClipboardList size={20} className="text-orange-600 dark:text-orange-400" strokeWidth={2} />
+              </div>
               <p className="text-sm sm:text-base font-bold text-orange-700 dark:text-orange-400 leading-snug">{t("page.lost.title")}</p>
-              <p className="text-xs text-orange-600/80 dark:text-orange-400/70 leading-relaxed mt-0.5">{t("dashboard.cardBrowseLostDesc")}</p>
             </div>
+            <p className="text-xs text-orange-600/80 dark:text-orange-400/70 leading-relaxed">{t("dashboard.cardBrowseLostDesc")}</p>
           </div>
         </Link>
 
         <Link href="/found" className="block animate-fade-rise" style={{ animationDelay: "240ms" }}>
           <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl border-2 border-brand-200 bg-brand-50 hover:bg-brand-100 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
-            <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center">
-              <Archive size={20} className="text-brand-600" strokeWidth={2} />
-            </div>
-            <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center shrink-0">
+                <Archive size={20} className="text-brand-600" strokeWidth={2} />
+              </div>
               <p className="text-sm sm:text-base font-bold text-brand-700 leading-snug">{t("page.found.title")}</p>
-              <p className="text-xs text-brand-600/80 leading-relaxed mt-0.5">{t("dashboard.cardBrowseFoundDesc")}</p>
             </div>
+            <p className="text-xs text-brand-600/80 leading-relaxed">{t("dashboard.cardBrowseFoundDesc")}</p>
           </div>
         </Link>
       </section>

@@ -1,3 +1,4 @@
+"use client";
 /**
  * src/components/shared/VerificationCard.tsx
  * Card for admin verification queue — extracted from admin/verification/page.tsx
@@ -7,6 +8,7 @@ import ReportImage from "@/components/ui/ReportImage";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { formatDateShort } from "@/lib/utils";
+import { useT } from "@/components/shared/LanguageProvider";
 import type { ReportWithRelations } from "@/types";
 
 interface VerificationCardProps {
@@ -19,6 +21,7 @@ interface VerificationCardProps {
 export default function VerificationCard({
   report, onVerify, onReject, isPending,
 }: VerificationCardProps) {
+  const t = useT();
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
       {/* Image — full photo, never cropped */}
@@ -34,12 +37,12 @@ export default function VerificationCard({
         <h3 className="text-base font-bold text-gray-900 line-clamp-2 break-words">{report.title}</h3>
 
         <div className="flex flex-col gap-0.5 text-xs text-gray-500">
-          <span>Kategori: <strong>{report.category.name}</strong></span>
-          <span>Pelapor: <strong>{report.author.name}</strong></span>
-          <span>Dilaporkan: {formatDateShort(report.createdAt)}</span>
+          <span>{t("verify.category")} <strong>{report.category.name}</strong></span>
+          <span>{t("verify.reporter")} <strong>{report.author.name}</strong></span>
+          <span>{t("verify.reportedAt")} {formatDateShort(report.createdAt)}</span>
           {report.facility && (
             <span className="text-brand-600 font-semibold mt-0.5">
-              Dititipkan di: {report.facility.name}
+              {t("verify.depositedAt")} {report.facility.name}
             </span>
           )}
         </div>
@@ -56,7 +59,7 @@ export default function VerificationCard({
             loading={isPending}
             onClick={() => onVerify(report.id)}
           >
-            Verifikasi
+            {t("action.verify")}
           </Button>
           <Button
             variant="destructive"
@@ -66,7 +69,7 @@ export default function VerificationCard({
             loading={isPending}
             onClick={() => onReject(report.id)}
           >
-            Tolak
+            {t("action.reject")}
           </Button>
         </div>
       </div>

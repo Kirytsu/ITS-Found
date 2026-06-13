@@ -24,6 +24,17 @@ export function formatDateShort(date: Date | string, locale: DateLocale = "id"):
   });
 }
 
+/** Format Date with time (e.g., "15 Mei 2026, 14.30" / "May 15, 2026, 2:30 PM") */
+export function formatDateTime(date: Date | string, locale: DateLocale = "id"): string {
+  return new Date(date).toLocaleDateString(intlLocale(locale), {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /** Truncate text to specified length */
 export function truncate(text: string, max = 100): string {
   return text.length > max ? text.slice(0, max) + "..." : text;

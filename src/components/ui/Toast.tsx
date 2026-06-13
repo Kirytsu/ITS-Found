@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle, Info, AlertTriangle, XCircle, X } from "lucide-react";
 import { clsx } from "clsx";
+import { useT } from "@/components/shared/LanguageProvider";
 
 export type ToastType = "success" | "info" | "warning" | "error";
 
@@ -24,36 +25,37 @@ interface ToastItemProps {
 
 const typeConfig: Record<
   ToastType,
-  { icon: React.ReactNode; chip: string; border: string; title: string }
+  { icon: React.ReactNode; chip: string; border: string; titleKey: string }
 > = {
   success: {
     icon: <CheckCircle size={18} />,
     chip: "bg-brand-50 text-brand-600",
     border: "border-brand-100",
-    title: "Berhasil",
+    titleKey: "toast.success",
   },
   info: {
     icon: <Info size={18} />,
     chip: "bg-blue-50 text-blue-600",
     border: "border-blue-100",
-    title: "Info",
+    titleKey: "toast.info",
   },
   warning: {
     icon: <AlertTriangle size={18} />,
     chip: "bg-amber-50 text-amber-600",
     border: "border-amber-100",
-    title: "Perhatian",
+    titleKey: "toast.warning",
   },
   error: {
     icon: <XCircle size={18} />,
     chip: "bg-red-50 text-red-600",
     border: "border-red-100",
-    title: "Gagal",
+    titleKey: "toast.error",
   },
 };
 
 function ToastItem({ toast, onDismiss }: ToastItemProps) {
-  const { icon, chip, border, title } = typeConfig[toast.type];
+  const t = useT();
+  const { icon, chip, border, titleKey } = typeConfig[toast.type];
 
   useEffect(() => {
     const timer = setTimeout(() => onDismiss(toast.id), toast.duration ?? 4000);
@@ -71,13 +73,13 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
         {icon}
       </span>
       <div className="min-w-0 flex-1 pt-0.5">
-        <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
+        <p className="text-sm font-bold text-gray-900 leading-tight">{t(titleKey)}</p>
         <p className="mt-0.5 text-sm leading-snug text-gray-600 break-words">{toast.message}</p>
       </div>
       <button
         onClick={() => onDismiss(toast.id)}
         className="flex-shrink-0 text-gray-400 transition-colors hover:text-gray-600"
-        aria-label="Tutup"
+        aria-label={t("toast.close")}
       >
         <X size={16} />
       </button>

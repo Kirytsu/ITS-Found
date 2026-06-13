@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { clsx } from "clsx";
+import { useT } from "@/components/shared/LanguageProvider";
 import type { SelectOption } from "@/types";
 
 interface ComboboxProps {
@@ -22,8 +23,10 @@ interface ComboboxProps {
 
 export default function Combobox({
   label, helperText, error, options, value, onChange,
-  placeholder = "Cari atau pilih...", required, disabled, name,
+  placeholder, required, disabled, name,
 }: ComboboxProps) {
+  const t = useT();
+  const resolvedPlaceholder = placeholder ?? t("combobox.singlePlaceholder");
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,7 +88,7 @@ export default function Combobox({
           )}
         >
           <span className={clsx(!selectedLabel && "text-gray-400")}>
-            {selectedLabel || placeholder}
+            {selectedLabel || resolvedPlaceholder}
           </span>
           <span className="flex items-center gap-1 text-gray-400">
             {value && (
@@ -104,13 +107,13 @@ export default function Combobox({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ketik untuk mencari..."
+                placeholder={t("combobox.searchPlaceholder")}
                 className="flex-1 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent"
               />
             </div>
             <ul className="max-h-52 overflow-y-auto py-1">
               {filtered.length === 0
-                ? <li className="px-3 py-2 text-sm text-gray-400">Tidak ditemukan</li>
+                ? <li className="px-3 py-2 text-sm text-gray-400">{t("combobox.noResults")}</li>
                 : filtered.map((opt) => (
                     <li
                       key={opt.value}

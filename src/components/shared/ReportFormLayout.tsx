@@ -29,13 +29,13 @@ interface ReportFormLayoutProps {
 }
 
 /** Upload file to /api/upload — returns URL or throws */
-async function uploadImage(file: File): Promise<string> {
+async function uploadImage(file: File, uploadFailedMsg: string): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
   const res = await fetch("/api/upload", { method: "POST", body: fd });
   if (!res.ok) {
     const json = await res.json().catch(() => ({}));
-    throw new Error(json.error ?? "Upload gagal.");
+    throw new Error(json.error ?? uploadFailedMsg);
   }
   const { url } = await res.json();
   return url as string;
@@ -53,8 +53,12 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [areaId, setAreaId] = useState(initialData?.areaId ?? "");
   // LOST may span multiple areas. Seed from existing relation (edit) or primary area.
+  // `areas` is an empty array (not undefined) for older records predating the M2M relation,
+  // so fall back to `areaId` when the relation is empty too.
   const [areaIds, setAreaIds] = useState<string[]>(
-    initialData?.areas?.map((a) => a.id) ?? (initialData?.areaId ? [initialData.areaId] : [])
+    initialData?.areas && initialData.areas.length > 0
+      ? initialData.areas.map((a) => a.id)
+      : initialData?.areaId ? [initialData.areaId] : []
   );
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
   const [facilityId, setFacilityId] = useState(initialData?.facilityId ?? "");
@@ -119,9 +123,9 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
         let imageUrl: string | undefined = initialData?.imageUrl ?? undefined;
         if (selectedFile) {
           try {
-            imageUrl = await uploadImage(selectedFile);
+            imageUrl = await uploadImage(selectedFile, t("error.uploadFailed"));
           } catch (uploadErr: unknown) {
-            const msg = uploadErr instanceof Error ? uploadErr.message : "Upload gambar gagal.";
+            const msg = uploadErr instanceof Error ? uploadErr.message : t("error.imageUploadFailed");
             addToast(msg, "error");
             return;
           }
@@ -148,8 +152,9 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
 
         if (result.success) {
           addToast(result.message, "success");
+          const targetId = isEdit ? initialData!.id : (result.data?.reportId as string | undefined);
           setTimeout(() => {
-            router.push(isEdit ? `/report/${initialData!.id}` : (type === "lost" ? "/lost" : "/found"));
+            router.push(targetId ? `/report/${targetId}` : (type === "lost" ? "/lost" : "/found"));
             router.refresh();
           }, 1200);
         } else {

@@ -3,12 +3,18 @@
  * src/components/shared/MatchedReportsSection.tsx
  */
 import { useEffect, useState } from "react";
-import { Sparkles, X } from "lucide-react";
-import ReportCard from "@/components/shared/ReportCard";
+import Link from "next/link";
+import { Sparkles, X, ArrowRight, CheckCircle2 } from "lucide-react";
+import Badge from "@/components/ui/Badge";
+import ReportImage from "@/components/ui/ReportImage";
 import { useT, useLocale } from "@/components/shared/LanguageProvider";
+import { typeToBadgeVariant, formatDateShort } from "@/lib/utils";
 import type { ReportWithRelations } from "@/types";
 
-interface Props { matches: ReportWithRelations[]; }
+interface Props {
+  matches: ReportWithRelations[];
+  sourceReport: ReportWithRelations;
+}
 
 function MatchBanner({ count }: { count: number }) {
   const t = useT();
@@ -34,11 +40,15 @@ function MatchBanner({ count }: { count: number }) {
   );
 }
 
-export default function MatchedReportsSection({ matches }: Props) {
+export default function MatchedReportsSection({ matches, sourceReport }: Props) {
   const t = useT();
   const locale = useLocale();
 
   if (matches.length === 0) return null;
+
+  const sourceAreaIds = new Set(
+    (sourceReport.areas?.length ? sourceReport.areas : [sourceReport.area]).map((a) => a.id)
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -50,12 +60,62 @@ export default function MatchedReportsSection({ matches }: Props) {
           {matches.length}
         </span>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scroll-smooth-x">
-        {matches.map((m) => (
-          <div key={m.id} className="flex-shrink-0 w-64">
-            <ReportCard report={m} showTypeBadge locale={locale} />
-          </div>
-        ))}
+      <div className="flex flex-col gap-3">
+        {matches.map((m) => {
+          const matchAreas = m.areas?.length ? m.areas : [m.area];
+          const sharedAreaNames = matchAreas.filter((a) => sourceAreaIds.has(a.id)).map((a) => a.name);
+          const sameCategory = m.category.id === sourceReport.category.id;
+
+          return (
+            <Link
+              key={m.id}
+              href={`/report/${m.id}`}
+              className="group flex gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 dark:bg-brand-950/20 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl">
+                <ReportImage src={m.imageUrl} alt={m.title} className="h-full" emptySize={22} />
+                <div className="absolute left-1 top-1">
+                  <Badge variant={typeToBadgeVariant(m.type)} locale={locale} />
+                </div>
+              </div>
+
+              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="truncate text-xs font-medium text-gray-500">{m.area.name}</span>
+                  <span className="flex-shrink-0 text-gray-300">&middot;</span>
+                  <span className="truncate text-xs font-medium text-brand-600">{m.category.name}</span>
+                  <span className="flex-shrink-0 text-gray-300">&middot;</span>
+                  <span className="shrink-0 text-xs text-gray-400">{formatDateShort(m.incidentDate)}</span>
+                </div>
+
+                <h4 className="text-sm font-bold leading-snug text-gray-900 line-clamp-1 break-words">
+                  {m.title}
+                </h4>
+
+                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                  {sameCategory && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-medium text-brand-700">
+                      <CheckCircle2 size={11} />
+                      {t("matched.reason.category", { category: m.category.name })}
+                    </span>
+                  )}
+                  {sharedAreaNames.length > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-medium text-brand-700">
+                      <CheckCircle2 size={11} />
+                      {t("matched.reason.area", { area: sharedAreaNames.join(", ") })}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-medium text-brand-700">
+                    <CheckCircle2 size={11} />
+                    {t("matched.reason.date")}
+                  </span>
+                </div>
+              </div>
+
+              <ArrowRight size={16} className="shrink-0 self-center text-brand-400 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
+import Pagination from "@/components/ui/Pagination";
 import FilterBar from "@/components/shared/FilterBar";
 import ReportCard from "@/components/shared/ReportCard";
 import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
@@ -16,17 +17,19 @@ import type { ReportFilters, ReportStatus } from "@/types";
 
 interface SP { areaId?: string; categoryId?: string; status?: string; dateFrom?: string; dateTo?: string; search?: string; page?: string; }
 
+const PAGE_SIZE = 20;
+
 async function ReportList({ sp, locale }: { sp: SP; locale: Locale }) {
   const t = getTranslator(locale);
+  const page = sp.page ? parseInt(sp.page) : 1;
   const filters: ReportFilters = {
     areaId: sp.areaId, categoryId: sp.categoryId, search: sp.search,
     status: sp.status as ReportStatus | undefined,
     dateFrom: sp.dateFrom ? new Date(sp.dateFrom) : undefined,
     dateTo: sp.dateTo ? new Date(sp.dateTo) : undefined,
-    page: sp.page ? parseInt(sp.page) : 1, limit: 12,
+    page, limit: PAGE_SIZE,
   };
   const reports = await getPublicReports("LOST", filters);
-  const nextPage = (parseInt(sp.page ?? "1")) + 1;
 
   if (reports.length === 0)
     return <EmptyState text={t("list.empty")} />;
@@ -36,13 +39,15 @@ async function ReportList({ sp, locale }: { sp: SP; locale: Locale }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {reports.map((r) => <ReportCard key={r.id} report={r} locale={locale} />)}
       </div>
-      {reports.length === 12 && (
-        <Link href={`/lost?${new URLSearchParams({ ...sp, page: String(nextPage) })}`}>
-          <button className="w-full py-3 rounded-full bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
-            {t("common.showMore")}
-          </button>
-        </Link>
-      )}
+      <Pagination
+        page={page}
+        hasNext={reports.length === PAGE_SIZE}
+        basePath="/lost"
+        searchParams={sp}
+        prevLabel={t("common.prev")}
+        nextLabel={t("common.next")}
+        pageLabel={t("common.page", { n: page })}
+      />
     </div>
   );
 }

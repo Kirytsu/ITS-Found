@@ -76,9 +76,6 @@ export async function createMatchNotifications(
   });
   if (!source) return;
 
-  const typeLabel = source.type === "LOST" ? "kehilangan" : "penemuan";
-  const oppositeLabel = source.type === "LOST" ? "penemuan" : "kehilangan";
-
   // Create notifications in parallel
   await Promise.all(
     matches.map(async (match) => {
@@ -88,7 +85,7 @@ export async function createMatchNotifications(
         await db.notification.create({
           data: {
             userId: source.authorId,
-            message: `Ada laporan ${oppositeLabel} yang cocok dengan laporan ${typeLabel} Anda: "${match.title}" di ${source.area.name}.`,
+            actionKey: "match",
             matchedReportId: match.id,
           },
         });
@@ -96,7 +93,7 @@ export async function createMatchNotifications(
         await db.notification.create({
           data: {
             userId: match.authorId,
-            message: `Ada laporan ${typeLabel} yang cocok dengan laporan ${oppositeLabel} Anda: "${source.title}" di ${source.area.name}.`,
+            actionKey: "match",
             matchedReportId: sourceReportId,
           },
         });
@@ -109,25 +106,18 @@ export async function createMatchNotifications(
  * Notifies the report author when a user claims their FOUND report.
  */
 export async function createClaimNotification(
-  reportId: string,
-  claimerId: string
+  reportId: string
 ): Promise<void> {
   const report = await db.report.findUnique({
     where: { id: reportId },
-    include: { category: true, area: true },
   });
   if (!report) return;
-
-  const claimer = await db.user.findUnique({
-    where: { id: claimerId },
-  });
-  if (!claimer) return;
 
   // Notify the report author that their item was claimed
   await db.notification.create({
     data: {
       userId: report.authorId,
-      message: `${claimer.name} mengajukan klaim untuk laporan "${report.title}" Anda. Silakan verifikasi di fasilitas penitipan ${report.area.name}.`,
+      actionKey: "claimSubmitted",
       matchedReportId: reportId,
     },
   });
@@ -137,12 +127,10 @@ export async function createClaimNotification(
  * Notifies the report author when a claim is cancelled.
  */
 export async function createClaimCancelledNotification(
-  reportId: string,
-  claimerName: string
+  reportId: string
 ): Promise<void> {
   const report = await db.report.findUnique({
     where: { id: reportId },
-    include: { area: true },
   });
   if (!report) return;
 
@@ -150,7 +138,7 @@ export async function createClaimCancelledNotification(
   await db.notification.create({
     data: {
       userId: report.authorId,
-      message: `${claimerName} telah membatalkan klaim untuk laporan "${report.title}" Anda. Laporan kembali tersedia untuk diklaim.`,
+      actionKey: "claimCancelled",
       matchedReportId: reportId,
     },
   });
@@ -161,12 +149,10 @@ export async function createClaimCancelledNotification(
  * Admin needs to verify the report before it becomes visible.
  */
 export async function notifyAdminsNewFoundReport(
-  reportId: string,
-  reporterName: string
+  reportId: string
 ): Promise<void> {
   const report = await db.report.findUnique({
     where: { id: reportId },
-    include: { area: true, category: true },
   });
   if (!report) return;
 
@@ -183,7 +169,7 @@ export async function notifyAdminsNewFoundReport(
       db.notification.create({
         data: {
           userId: admin.id,
-          message: `Laporan penemuan baru dari ${reporterName}: "${report.title}" di ${report.area.name}. Silakan verifikasi laporan ini.`,
+          actionKey: "newFoundReport",
           matchedReportId: reportId,
         },
       })
@@ -196,12 +182,10 @@ export async function notifyAdminsNewFoundReport(
  * Admin needs to mark it as "selesai" after claimant verifies at facility.
  */
 export async function notifyAdminsClaimMade(
-  reportId: string,
-  claimerName: string
+  reportId: string
 ): Promise<void> {
   const report = await db.report.findUnique({
     where: { id: reportId },
-    include: { area: true, facility: true },
   });
   if (!report) return;
 
@@ -218,7 +202,7 @@ export async function notifyAdminsClaimMade(
       db.notification.create({
         data: {
           userId: admin.id,
-          message: `${claimerName} mengajukan klaim untuk "${report.title}". Setelah verifikasi fisik di ${report.facility?.name || "fasilitas penitipan"}, silakan tandai laporan ini sebagai selesai.`,
+          actionKey: "claimToResolve",
           matchedReportId: reportId,
         },
       })
@@ -230,9 +214,7 @@ export async function notifyAdminsClaimMade(
  * Notifies the claimer when admin marks a FOUND report as resolved.
  */
 export async function notifyClaimerReportResolved(
-  reportId: string,
-  claimerName: string,
-  claimerEmail: string
+  reportId: string
 ): Promise<void> {
   const report = await db.report.findUnique({
     where: { id: reportId },
@@ -244,7 +226,7 @@ export async function notifyClaimerReportResolved(
   await db.notification.create({
     data: {
       userId: report.claim.userId,
-      message: `Barang Anda "${report.title}" sudah tersedia untuk diambil. Silakan datang ke fasilitas penitipan untuk mengambilnya.`,
+      actionKey: "readyPickup",
       matchedReportId: reportId,
     },
   });
@@ -258,7 +240,6 @@ export async function notifyReporterVerified(
 ): Promise<void> {
   const report = await db.report.findUnique({
     where: { id: reportId },
-    include: { area: true },
   });
   if (!report) return;
 
@@ -266,7 +247,7 @@ export async function notifyReporterVerified(
   await db.notification.create({
     data: {
       userId: report.authorId,
-      message: `Laporan penemuan "${report.title}" Anda telah diverifikasi dan dipublikasikan. Orang yang mencari barang ini dapat melihatnya sekarang.`,
+      actionKey: "verified",
       matchedReportId: reportId,
     },
   });
@@ -293,6 +274,7 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
     where: { userId, isRead: false },
     data: { isRead: true },
   });
+  revalidatePath("/", "layout");
 }
 
 /** Returns all notifications for a user, newest first. */

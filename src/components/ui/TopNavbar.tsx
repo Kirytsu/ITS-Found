@@ -10,7 +10,7 @@
  *
  * All icons are monochrome gray — brand navy ONLY for active state.
  */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -126,17 +126,16 @@ function NavLink({ item, onClose, badge }: { item: NavItemConfig; onClose?: () =
 
 /* ─────────────── SidebarContent ────────────────────────────────────────────── */
 function SidebarContent({
-  sections, userName, unreadCount, onClose, onLogout, hasClearedNotifs,
+  sections, userName, unreadCount, onClose, onLogout,
 }: {
   sections: NavSection[];
   userName?: string;
   unreadCount: number;
   onClose?: () => void;
   onLogout: () => void;
-  hasClearedNotifs: boolean;
 }) {
   const t = useT();
-  const displayCount = hasClearedNotifs ? 0 : unreadCount;
+  const displayCount = unreadCount;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -214,42 +213,21 @@ function SidebarContent({
 export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNavbarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [hasClearedNotifs, setHasClearedNotifs] = useState(false);
 
-  const pathname = usePathname();
   const router = useRouter();
   const t = useT();
   const sections = buildSections(isAdmin);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const isCleared = localStorage.getItem("notifs_cleared") === "true";
-      if (isCleared) {
-        setHasClearedNotifs(true);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (pathname === "/notifications") {
-      localStorage.setItem("notifs_cleared", "true");
-      setHasClearedNotifs(true);
-    }
-  }, [pathname]);
-
   const handleLogout = async () => {
     setDrawerOpen(false);
     setProfileDropdownOpen(false);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("notifs_cleared");
-    }
     await logoutUser();
     router.push("/login");
     router.refresh();
   };
 
-  const sidebarProps = { sections, userName, unreadCount, onLogout: handleLogout, hasClearedNotifs };
-  const currentDisplayCount = hasClearedNotifs ? 0 : unreadCount;
+  const sidebarProps = { sections, userName, unreadCount, onLogout: handleLogout };
+  const currentDisplayCount = unreadCount;
 
   return (
     <>
@@ -323,9 +301,6 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
                   <button
                     onClick={async () => {
                       setProfileDropdownOpen(false);
-                      if (typeof window !== "undefined") {
-                        localStorage.removeItem("notifs_cleared");
-                      }
                       await logoutUser();
                       router.push("/login");
                       router.refresh();

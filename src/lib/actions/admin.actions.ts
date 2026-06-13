@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireAdmin } from "../auth";
+import { getT } from "../i18n/server";
 import { findMatches, createMatchNotifications, notifyReporterVerified, notifyClaimerReportResolved } from "./notification.actions";
 import type { ActionResult, ReportWithRelations } from "../../types";
 
@@ -57,11 +58,12 @@ export async function getAllReports(filters?: {
  */
 export async function verifyReport(id: string): Promise<ActionResult> {
   const session = await requireAdmin();
+  const t = await getT();
 
   const report = await db.report.findUnique({ where: { id } });
-  if (!report) return { success: false, message: "Laporan tidak ditemukan." };
+  if (!report) return { success: false, message: t("action.report.notFound") };
   if (report.status !== "UNVERIFIED") {
-    return { success: false, message: "Laporan ini tidak dalam status menunggu verifikasi." };
+    return { success: false, message: t("action.admin.notPendingVerification") };
   }
 
   await db.report.update({
@@ -86,17 +88,18 @@ export async function verifyReport(id: string): Promise<ActionResult> {
   revalidatePath("/");
   revalidatePath(`/report/${id}`);
 
-  return { success: true, message: "Laporan berhasil diverifikasi dan dipublikasikan." };
+  return { success: true, message: t("action.admin.verifySuccess") };
 }
 
 /** Reject a FOUND report: UNVERIFIED → REJECTED. */
 export async function rejectReport(id: string): Promise<ActionResult> {
   await requireAdmin();
+  const t = await getT();
 
   const report = await db.report.findUnique({ where: { id } });
-  if (!report) return { success: false, message: "Laporan tidak ditemukan." };
+  if (!report) return { success: false, message: t("action.report.notFound") };
   if (report.status !== "UNVERIFIED") {
-    return { success: false, message: "Laporan ini tidak dalam status menunggu verifikasi." };
+    return { success: false, message: t("action.admin.notPendingVerification") };
   }
 
   await db.report.update({ where: { id }, data: { status: "REJECTED" } });
@@ -106,7 +109,7 @@ export async function rejectReport(id: string): Promise<ActionResult> {
   revalidatePath(`/report/${id}`);
   revalidatePath("/");
 
-  return { success: true, message: "Laporan telah ditolak." };
+  return { success: true, message: t("action.admin.rejectSuccess") };
 }
 
 /**
@@ -118,9 +121,10 @@ export async function forceUpdateStatus(
   newStatus: "PUBLISHED" | "UNVERIFIED" | "RESOLVED" | "REJECTED"
 ): Promise<ActionResult> {
   await requireAdmin();
+  const t = await getT();
 
   const report = await db.report.findUnique({ where: { id } });
-  if (!report) return { success: false, message: "Laporan tidak ditemukan." };
+  if (!report) return { success: false, message: t("action.report.notFound") };
 
   await db.report.update({ where: { id }, data: { status: newStatus } });
 
@@ -131,5 +135,5 @@ export async function forceUpdateStatus(
   revalidatePath("/found");
   revalidatePath("/");
 
-  return { success: true, message: `Status laporan berhasil diubah menjadi ${newStatus}.` };
+  return { success: true, message: t("action.admin.statusUpdateSuccess", { status: newStatus }) };
 }

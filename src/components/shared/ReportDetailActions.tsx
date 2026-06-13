@@ -33,13 +33,13 @@ interface Props {
 }
 
 /** Upload file to /api/upload — returns URL or throws */
-async function uploadImage(file: File): Promise<string> {
+async function uploadImage(file: File, uploadFailedMsg: string): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
   const res = await fetch("/api/upload", { method: "POST", body: fd });
   if (!res.ok) {
     const json = await res.json().catch(() => ({}));
-    throw new Error(json.error ?? "Upload gagal.");
+    throw new Error(json.error ?? uploadFailedMsg);
   }
   const { url } = await res.json();
   return url as string;
@@ -104,22 +104,22 @@ export default function ReportDetailActions({
   const executeResolve = () => {
     const finalTakerName = hasClaim ? (claimantName ?? "") : takerName;
     if (report.type === "FOUND" && !finalTakerName.trim()) {
-      addToast("Nama pengambil wajib diisi.", "error");
+      addToast(t("error.takerNameRequired"), "error");
       return;
     }
 
     if (report.type === "FOUND" && !hasClaim) {
       if (!takerPhone.trim()) {
-        addToast("Nomor HP pengambil wajib diisi.", "error");
+        addToast(t("error.takerPhoneRequired"), "error");
         return;
       }
       if (!takerIdCard.trim()) {
-        addToast("Nomor Identitas wajib diisi.", "error");
+        addToast(t("error.takerIdRequired"), "error");
         return;
       }
       if (!takerPhotoFile) {
-        setTakerPhotoError("Foto serah terima wajib diunggah.");
-        addToast("Foto serah terima wajib diunggah.", "error");
+        setTakerPhotoError(t("error.takerPhotoRequired"));
+        addToast(t("error.takerPhotoRequired"), "error");
         return;
       }
     }
@@ -129,7 +129,7 @@ export default function ReportDetailActions({
       try {
         let finalTakerPhotoUrl = "";
         if (report.type === "FOUND" && !hasClaim && takerPhotoFile) {
-          finalTakerPhotoUrl = await uploadImage(takerPhotoFile);
+          finalTakerPhotoUrl = await uploadImage(takerPhotoFile, t("error.uploadFailed"));
         }
 
         const result = await resolveReport(
@@ -154,7 +154,7 @@ export default function ReportDetailActions({
           addToast(result.message, "error");
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Gagal memproses penyelesaian laporan.";
+        const msg = err instanceof Error ? err.message : t("error.resolveFailed");
         addToast(msg, "error");
       }
     });
@@ -162,14 +162,14 @@ export default function ReportDetailActions({
 
   const executeCreateClaim = () => {
     if (!claimFile) {
-      setClaimFileError("Foto bukti wajib diunggah.");
+      setClaimFileError(t("error.claimProofRequired"));
       return;
     }
     setClaimFileError("");
 
     startTransition(async () => {
       try {
-        const photoUrl = await uploadImage(claimFile);
+        const photoUrl = await uploadImage(claimFile, t("error.uploadFailed"));
         const result = await createClaim(report.id, photoUrl, claimNotes);
         if (result.success) {
           addToast(result.message, "success");
@@ -181,7 +181,7 @@ export default function ReportDetailActions({
           addToast(result.message, "error");
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Gagal mengajukan klaim.";
+        const msg = err instanceof Error ? err.message : t("error.claimFailed");
         addToast(msg, "error");
       }
     });
@@ -220,12 +220,15 @@ export default function ReportDetailActions({
               {t("action.edit")}
             </Button>
           </Link>
-          <Button
-            variant="destructive" size="full" className="rounded-full flex-1"
-            icon={<Trash2 size={15} />} disabled={isPending} onClick={() => setShowConfirm(true)}
-          >
-            {t("action.delete")}
-          </Button>
+          {/* Verified FOUND reports can no longer be deleted by the owner (LOST is exempt) */}
+          {!(report.type === "FOUND" && report.status === "PUBLISHED" && !isAdmin) && (
+            <Button
+              variant="destructive" size="full" className="rounded-full flex-1"
+              icon={<Trash2 size={15} />} disabled={isPending} onClick={() => setShowConfirm(true)}
+            >
+              {t("action.delete")}
+            </Button>
+          )}
         </StickyBar>
       )}
 
@@ -303,17 +306,17 @@ export default function ReportDetailActions({
                 <h3 className="text-lg font-bold text-gray-900">{t("modal.resolve.title")}</h3>
                 {report.type === "LOST" && (
                   <p className="text-sm text-gray-500">
-                    Apakah Anda yakin laporan ini telah selesai? Status laporan akan diubah dan tidak dapat dikembalikan.
+                    {t("modal.resolve.bodyLost")}
                   </p>
                 )}
                 {report.type === "FOUND" && hasClaim && (
                   <p className="text-sm text-gray-500">
-                    Apakah Anda yakin ingin menyelesaikan laporan ini dan menyerahkan barang kepada pengklaim <strong>{claimantName}</strong>? Status laporan akan diubah menjadi selesai.
+                    {t("modal.resolve.bodyFoundClaim", { name: claimantName ?? "" })}
                   </p>
                 )}
                 {report.type === "FOUND" && !hasClaim && (
                   <p className="text-sm text-gray-500">
-                    Silakan isi identitas pengambil barang (offline) di bawah untuk menyelesaikan laporan ini.
+                    {t("modal.resolve.bodyFoundOffline")}
                   </p>
                 )}
               </div>
@@ -321,50 +324,50 @@ export default function ReportDetailActions({
               {report.type === "FOUND" && !hasClaim && (
                 <div className="flex flex-col gap-4 text-left">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-900">Nama Lengkap</label>
+                    <label className="text-sm font-semibold text-gray-900">{t("form.takerName.label")}</label>
                     <input
                       type="text"
                       value={takerName}
                       onChange={(e) => setTakerName(e.target.value)}
-                      placeholder="Nama Lengkap Pengambil"
+                      placeholder={t("form.takerName.placeholder")}
                       className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-900">Nomor HP</label>
+                    <label className="text-sm font-semibold text-gray-900">{t("form.takerPhone.label")}</label>
                     <input
                       type="text"
                       value={takerPhone}
                       onChange={(e) => setTakerPhone(e.target.value)}
-                      placeholder="Nomor HP Aktif"
+                      placeholder={t("form.takerPhone.placeholder")}
                       className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-900">Nomor Identitas (NIK/NRP/KTM)</label>
+                    <label className="text-sm font-semibold text-gray-900">{t("form.takerIdCard.label")}</label>
                     <input
                       type="text"
                       value={takerIdCard}
                       onChange={(e) => setTakerIdCard(e.target.value)}
-                      placeholder="Contoh: 5025211001"
+                      placeholder={t("form.takerIdCard.placeholder")}
                       className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   <FileUpload
-                    label="Foto Bukti"
+                    label={t("modal.photoProof")}
                     onFileChange={setTakerPhotoFile}
                     error={takerPhotoError}
                   />
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-900">Catatan (Opsional)</label>
+                    <label className="text-sm font-semibold text-gray-900">{t("form.takerNotes.label")}</label>
                     <textarea
                       value={takerNotes}
                       onChange={(e) => setTakerNotes(e.target.value)}
-                      placeholder="Catatan tambahan mengenai serah terima..."
+                      placeholder={t("form.takerNotes.placeholder")}
                       rows={2}
                       className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400"
                     />
@@ -425,7 +428,7 @@ export default function ReportDetailActions({
                 <textarea
                   value={claimNotes}
                   onChange={(e) => setClaimNotes(e.target.value)}
-                  placeholder="Masukkan deskripsi tambahan atau pesan khusus..."
+                  placeholder={t("form.claimNotes.placeholder")}
                   rows={3}
                   className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400"
                 />

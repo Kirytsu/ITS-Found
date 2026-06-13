@@ -2,14 +2,16 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ToastContainer, useToast } from "@/components/ui/Toast";
+import { useT } from "@/components/shared/LanguageProvider";
 
 export default function DeleteSuccessToast() {
   const searchParams = useSearchParams();
   const { toasts, addToast, dismiss } = useToast();
+  const t = useT();
 
   useEffect(() => {
     if (searchParams.get("deleted") === "1") {
-      addToast("Laporan berhasil dihapus.", "success");
+      addToast(t("toast.deleteSuccess"), "success");
       
       // Clean up URL without reloading
       const url = new URL(window.location.href);

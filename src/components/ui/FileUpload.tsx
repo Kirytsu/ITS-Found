@@ -7,6 +7,7 @@
 import { useState, useRef, useCallback } from "react";
 import { X, Upload } from "lucide-react";
 import { clsx } from "clsx";
+import { useT } from "@/components/shared/LanguageProvider";
 
 interface FileUploadProps {
   label?: string;
@@ -33,6 +34,7 @@ export default function FileUpload({
   const [preview, setPreview] = useState<string | null>(currentImageUrl ?? null);
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
 
   const handleFile = useCallback(
     (file: File | null) => {
@@ -77,7 +79,7 @@ export default function FileUpload({
             onClick={handleClear}
             disabled={disabled}
             className="absolute top-2 right-2 bg-white rounded-full p-1.5 shadow-md hover:bg-gray-100 transition-colors disabled:opacity-50"
-            aria-label="Hapus foto"
+            aria-label={t("upload.remove")}
           >
             <X size={15} className="text-gray-600" />
           </button>
@@ -104,11 +106,11 @@ export default function FileUpload({
         >
           <Upload size={28} className="text-gray-400" strokeWidth={1.5} />
           <p className="text-sm text-gray-500 text-center leading-relaxed">
-            <span className="font-semibold text-gray-700">Klik untuk pilih foto</span>
+            <span className="font-semibold text-gray-700">{t("upload.clickToSelect")}</span>
             <br />
-            <span className="text-xs">atau seret &amp; lepas di sini</span>
+            <span className="text-xs">{t("upload.dragDrop")}</span>
           </p>
-          <p className="text-xs text-gray-400">JPG, PNG, WebP — maks. 5MB</p>
+          <p className="text-xs text-gray-400">{t("upload.hint")}</p>
         </div>
       )}
 

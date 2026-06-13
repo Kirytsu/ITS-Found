@@ -1,9 +1,11 @@
+"use client";
 /**
  * src/components/ui/Select.tsx
  */
 import { type SelectHTMLAttributes, forwardRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { clsx } from "clsx";
+import { useT } from "@/components/shared/LanguageProvider";
 import type { SelectOption } from "@/types";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
@@ -15,7 +17,9 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, helperText, error, options, placeholder = "Pilih...", required, className, id, name, ...props }, ref) => {
+  ({ label, helperText, error, options, placeholder, required, className, id, name, ...props }, ref) => {
+    const t = useT();
+    const resolvedPlaceholder = placeholder ?? t("select.placeholder");
     const selectId = id ?? name;
     return (
       <div className="flex flex-col gap-1">
@@ -40,7 +44,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             )}
             {...props}
           >
-            <option value="">{placeholder}</option>
+            <option value="">{resolvedPlaceholder}</option>
             {options.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}

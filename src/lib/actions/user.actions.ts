@@ -5,6 +5,7 @@
  */
 import { db } from "../db";
 import { requireSession } from "../auth";
+import { getT } from "../i18n/server";
 import type { ActionResult } from "../../types";
 
 /** Get current user profile details. */
@@ -53,9 +54,10 @@ export async function updateUserProfile(input: {
     name?: string;
 }): Promise<ActionResult> {
     const session = await requireSession();
+    const t = await getT();
 
     if (input.name && !input.name.trim()) {
-        return { success: false, message: "Nama tidak boleh kosong." };
+        return { success: false, message: t("action.user.nameEmpty") };
     }
 
     const user = await db.user.update({
@@ -65,5 +67,5 @@ export async function updateUserProfile(input: {
         },
     });
 
-    return { success: true, message: "Profil berhasil diperbarui.", data: user };
+    return { success: true, message: t("action.user.updateSuccess"), data: user };
 }

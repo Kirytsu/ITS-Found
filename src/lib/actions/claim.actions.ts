@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireSession } from "../auth";
+import { getT } from "../i18n/server";
 import { createClaimNotification, createClaimCancelledNotification, notifyAdminsClaimMade } from "./notification.actions";
 import type { ActionResult } from "../../types";
 
@@ -18,18 +19,19 @@ export async function createClaim(
   notes?: string
 ): Promise<ActionResult> {
   const session = await requireSession();
+  const t = await getT();
 
   // 1. Validate inputs
   if (!reportId) {
-    return { success: false, message: "ID laporan tidak valid." };
+    return { success: false, message: t("action.claim.invalidReportId") };
   }
   if (!photoUrl) {
-    return { success: false, message: "Foto bukti pengambilan/kepemilikan wajib diunggah." };
+    return { success: false, message: t("action.claim.photoRequired") };
   }
 
   // 2. Validate roles
   if (session.role === "ADMIN") {
-    return { success: false, message: "Admin tidak diperbolehkan melakukan klaim barang." };
+    return { success: false, message: t("action.claim.adminNotAllowed") };
   }
 
   try {
@@ -40,23 +42,23 @@ export async function createClaim(
     });
 
     if (!report) {
-      return { success: false, message: "Laporan tidak ditemukan." };
+      return { success: false, message: t("action.claim.notFound") };
     }
 
     if (report.type !== "FOUND") {
-      return { success: false, message: "Hanya laporan penemuan (FOUND) yang dapat diklaim." };
+      return { success: false, message: t("action.claim.notFoundType") };
     }
 
     if (report.status !== "PUBLISHED") {
-      return { success: false, message: "Barang tidak dalam status yang dapat diklaim." };
+      return { success: false, message: t("action.claim.notClaimable") };
     }
 
     if (report.authorId === session.userId) {
-      return { success: false, message: "Pembuat laporan penemuan tidak boleh mengklaim barangnya sendiri." };
+      return { success: false, message: t("action.claim.ownReport") };
     }
 
     if (report.claim) {
-      return { success: false, message: "Barang ini sudah diklaim oleh pengguna lain." };
+      return { success: false, message: t("action.claim.alreadyClaimed") };
     }
 
     // 4. Create Claim record
@@ -71,9 +73,9 @@ export async function createClaim(
 
     // 4.5 Send notifications
     // Notify report author about the claim
-    await createClaimNotification(reportId, session.userId);
+    await createClaimNotification(reportId);
     // Notify admins to mark this report as resolved after verification
-    await notifyAdminsClaimMade(reportId, session.name);
+    await notifyAdminsClaimMade(reportId);
 
     // 5. Revalidate relevant paths
     revalidatePath(`/report/${reportId}`);
@@ -82,7 +84,7 @@ export async function createClaim(
 
     return {
       success: true,
-      message: "Klaim berhasil diajukan! Silakan hubungi fasilitas penitipan terkait untuk pengambilan barang fisik.",
+      message: t("action.claim.createSuccess"),
       data: { claimId: claim.id },
     };
   } catch (error) {
@@ -90,11 +92,11 @@ export async function createClaim(
     if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
       return {
         success: false,
-        message: "Barang ini baru saja diklaim oleh pengguna lain.",
+        message: t("action.claim.raceCondition"),
       };
     }
     console.error("[Create Claim Error]", error);
-    return { success: false, message: "Terjadi kesalahan saat memproses klaim." };
+    return { success: false, message: t("action.claim.createError") };
   }
 }
 
@@ -103,9 +105,10 @@ export async function createClaim(
  */
 export async function cancelClaim(reportId: string): Promise<ActionResult> {
   const session = await requireSession();
+  const t = await getT();
 
   if (!reportId) {
-    return { success: false, message: "ID laporan tidak valid." };
+    return { success: false, message: t("action.claim.invalidReportId") };
   }
 
   try {
@@ -116,22 +119,22 @@ export async function cancelClaim(reportId: string): Promise<ActionResult> {
     });
 
     if (!report) {
-      return { success: false, message: "Laporan tidak ditemukan." };
+      return { success: false, message: t("action.claim.notFound") };
     }
 
     const claim = report.claim;
     if (!claim) {
-      return { success: false, message: "Klaim tidak ditemukan untuk laporan ini." };
+      return { success: false, message: t("action.claim.notFoundForCancel") };
     }
 
     // 2. Validate authorization
     if (claim.userId !== session.userId) {
-      return { success: false, message: "Anda tidak memiliki akses untuk membatalkan klaim ini." };
+      return { success: false, message: t("action.claim.noCancelAccess") };
     }
 
     // 3. Validate report status
     if (report.status === "RESOLVED") {
-      return { success: false, message: "Klaim tidak dapat dibatalkan karena barang sudah diambil dan laporan diselesaikan." };
+      return { success: false, message: t("action.claim.cannotCancelResolved") };
     }
 
     // 4. Delete Claim
@@ -140,12 +143,7 @@ export async function cancelClaim(reportId: string): Promise<ActionResult> {
     });
 
     // 4.5 Send notification to report author
-    const claimant = await db.user.findUnique({
-      where: { id: claim.userId },
-    });
-    if (claimant) {
-      await createClaimCancelledNotification(reportId, claimant.name);
-    }
+    await createClaimCancelledNotification(reportId);
 
     // 5. Revalidate paths
     revalidatePath(`/report/${reportId}`);
@@ -154,10 +152,10 @@ export async function cancelClaim(reportId: string): Promise<ActionResult> {
 
     return {
       success: true,
-      message: "Klaim Anda berhasil dibatalkan.",
+      message: t("action.claim.cancelSuccess"),
     };
   } catch (error) {
     console.error("[Cancel Claim Error]", error);
-    return { success: false, message: "Terjadi kesalahan saat membatalkan klaim." };
+    return { success: false, message: t("action.claim.cancelError") };
   }
 }

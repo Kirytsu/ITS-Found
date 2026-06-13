@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireSession } from "../auth";
 import { isValidDate, isFutureDate } from "../utils";
+import { getT } from "../i18n/server";
 import { findMatches, createMatchNotifications, notifyAdminsNewFoundReport, notifyClaimerReportResolved } from "./notification.actions";
 import type {
   ActionResult,
@@ -36,23 +37,24 @@ export async function createReport(
   input: CreateReportInput
 ): Promise<ActionResult> {
   const session = await requireSession();
+  const t = await getT();
 
   // Validation
-  if (!input.title.trim()) return { success: false, message: "Judul wajib diisi." };
-  if (!input.categoryId) return { success: false, message: "Kategori wajib dipilih." };
+  if (!input.title.trim()) return { success: false, message: t("action.report.titleRequired") };
+  if (!input.categoryId) return { success: false, message: t("action.report.categoryRequired") };
   if (!input.areaId || !input.areaIds || input.areaIds.length === 0) {
-    return { success: false, message: "Area wajib dipilih.", errors: { areaId: "Area wajib dipilih." } };
+    return { success: false, message: t("action.report.areaRequired"), errors: { areaId: t("action.report.areaRequired") } };
   }
-  if (!input.description.trim()) return { success: false, message: "Deskripsi wajib diisi." };
-  if (!input.locationDetail.trim()) return { success: false, message: "Lokasi kejadian wajib diisi." };
+  if (!input.description.trim()) return { success: false, message: t("action.report.descriptionRequired") };
+  if (!input.locationDetail.trim()) return { success: false, message: t("action.report.locationRequired") };
   if (!isValidDate(input.incidentDate)) {
-    return { success: false, message: "Tanggal kejadian tidak valid.", errors: { incidentDate: "Tanggal kejadian tidak valid." } };
+    return { success: false, message: t("action.report.invalidDate"), errors: { incidentDate: t("action.report.invalidDate") } };
   }
   if (isFutureDate(input.incidentDate)) {
-    return { success: false, message: "Tanggal kejadian tidak boleh di masa depan.", errors: { incidentDate: "Tanggal kejadian tidak boleh di masa depan." } };
+    return { success: false, message: t("action.report.futureDate"), errors: { incidentDate: t("action.report.futureDate") } };
   }
   if (input.type === "FOUND" && !input.facilityId) {
-    return { success: false, message: "Fasilitas tempat penyimpanan wajib dipilih untuk laporan penemuan." };
+    return { success: false, message: t("action.report.facilityRequired") };
   }
 
   // LOST → PUBLISHED immediately; FOUND → UNVERIFIED (needs admin verification)
@@ -79,7 +81,7 @@ export async function createReport(
 
   // Notify admins if FOUND report (needs verification)
   if (input.type === "FOUND") {
-    await notifyAdminsNewFoundReport(report.id, session.name);
+    await notifyAdminsNewFoundReport(report.id);
   }
 
   // Smart Match: only run for PUBLISHED reports
@@ -93,7 +95,7 @@ export async function createReport(
 
   return {
     success: true,
-    message: "Laporan berhasil dibuat.",
+    message: t("action.report.createSuccess"),
     data: { reportId: report.id },
   };
 }
@@ -207,21 +209,22 @@ export async function updateReport(
   input: UpdateReportInput
 ): Promise<ActionResult> {
   const session = await requireSession();
+  const t = await getT();
   const report = await db.report.findUnique({ where: { id } });
 
-  if (!report) return { success: false, message: "Laporan tidak ditemukan." };
+  if (!report) return { success: false, message: t("action.report.notFound") };
   if (report.authorId !== session.userId && session.role !== "ADMIN") {
-    return { success: false, message: "Anda tidak memiliki akses untuk mengubah laporan ini." };
+    return { success: false, message: t("action.report.noEditAccess") };
   }
   if (report.status === "RESOLVED") {
-    return { success: false, message: "Laporan yang sudah selesai tidak dapat diubah." };
+    return { success: false, message: t("action.report.resolvedNoEdit") };
   }
   if (input.incidentDate !== undefined) {
     if (!isValidDate(input.incidentDate)) {
-      return { success: false, message: "Tanggal kejadian tidak valid.", errors: { incidentDate: "Tanggal kejadian tidak valid." } };
+      return { success: false, message: t("action.report.invalidDate"), errors: { incidentDate: t("action.report.invalidDate") } };
     }
     if (isFutureDate(input.incidentDate)) {
-      return { success: false, message: "Tanggal kejadian tidak boleh di masa depan.", errors: { incidentDate: "Tanggal kejadian tidak boleh di masa depan." } };
+      return { success: false, message: t("action.report.futureDate"), errors: { incidentDate: t("action.report.futureDate") } };
     }
   }
 
@@ -255,20 +258,26 @@ export async function updateReport(
   revalidatePath("/found");
   revalidatePath("/");
 
-  return { success: true, message: "Laporan berhasil diperbarui." };
+  return { success: true, message: t("action.report.updateSuccess") };
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 export async function deleteReport(id: string): Promise<ActionResult> {
   const session = await requireSession();
+  const t = await getT();
   const report = await db.report.findUnique({ where: { id } });
 
-  if (!report) return { success: false, message: "Laporan tidak ditemukan." };
+  if (!report) return { success: false, message: t("action.report.notFound") };
   if (report.authorId !== session.userId && session.role !== "ADMIN") {
-    return { success: false, message: "Anda tidak memiliki akses untuk menghapus laporan ini." };
+    return { success: false, message: t("action.report.noDeleteAccess") };
   }
   if (report.status === "RESOLVED") {
-    return { success: false, message: "Laporan yang sudah selesai tidak dapat dihapus." };
+    return { success: false, message: t("action.report.resolvedNoDelete") };
+  }
+  // FOUND reports that passed admin verification can no longer be deleted by the owner
+  // (item is already publicly listed / may be claimed). LOST reports are exempt.
+  if (report.type === "FOUND" && report.status === "PUBLISHED" && session.role !== "ADMIN") {
+    return { success: false, message: t("action.report.publishedNoDelete") };
   }
 
   // Delete related notifications first (FK constraint)
@@ -280,7 +289,7 @@ export async function deleteReport(id: string): Promise<ActionResult> {
   revalidatePath("/found");
   revalidatePath("/");
 
-  return { success: true, message: "Laporan berhasil dihapus." };
+  return { success: true, message: t("action.report.deleteSuccess") };
 }
 
 // ── Resolve ───────────────────────────────────────────────────────────────────
@@ -293,40 +302,41 @@ export async function resolveReport(
   takerNotes?: string
 ): Promise<ActionResult> {
   const session = await requireSession();
-  
+  const t = await getT();
+
   // Find report along with claim to verify status
   const report = await db.report.findUnique({
     where: { id },
     include: { claim: true },
   });
 
-  if (!report) return { success: false, message: "Laporan tidak ditemukan." };
+  if (!report) return { success: false, message: t("action.report.notFound") };
 
   if (report.type === "FOUND") {
     if (session.role !== "ADMIN") {
-      return { success: false, message: "Hanya Admin yang dapat menyelesaikan laporan penemuan." };
+      return { success: false, message: t("action.report.adminOnlyResolve") };
     }
-    
+
     // If it has a claim, only takerName is needed (populated automatically from claimant)
     if (report.claim) {
       if (!takerName?.trim()) {
-        return { success: false, message: "Nama pengambil wajib diisi." };
+        return { success: false, message: t("action.report.takerNameRequired") };
       }
     } else {
       // If no claim, we require all offline details
-      if (!takerName?.trim()) return { success: false, message: "Nama Lengkap pengambil wajib diisi." };
-      if (!takerPhone?.trim()) return { success: false, message: "Nomor HP pengambil wajib diisi." };
-      if (!takerIdCard?.trim()) return { success: false, message: "Nomor Identitas (NIK/NRP/KTM) wajib diisi." };
-      if (!takerPhotoUrl?.trim()) return { success: false, message: "Foto serah terima/pengambilan wajib diunggah." };
+      if (!takerName?.trim()) return { success: false, message: t("action.report.takerNameFullRequired") };
+      if (!takerPhone?.trim()) return { success: false, message: t("action.report.takerPhoneRequired") };
+      if (!takerIdCard?.trim()) return { success: false, message: t("action.report.takerIdRequired") };
+      if (!takerPhotoUrl?.trim()) return { success: false, message: t("action.report.takerPhotoRequired") };
     }
   } else {
     if (report.authorId !== session.userId && session.role !== "ADMIN") {
-      return { success: false, message: "Anda tidak memiliki akses untuk menyelesaikan laporan ini." };
+      return { success: false, message: t("action.report.noResolveAccess") };
     }
   }
 
   if (report.status === "RESOLVED") {
-    return { success: false, message: "Laporan sudah berstatus selesai." };
+    return { success: false, message: t("action.report.alreadyResolved") };
   }
 
   await db.report.update({ 
@@ -345,12 +355,12 @@ export async function resolveReport(
 
   // Notify claimer if FOUND report with claim is resolved
   if (report.type === "FOUND" && report.claim && takerName) {
-    await notifyClaimerReportResolved(id, takerName, takerPhone?.trim() || "No phone provided");
+    await notifyClaimerReportResolved(id);
   }
 
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");
   revalidatePath("/");
 
-  return { success: true, message: "Laporan berhasil ditandai selesai." };
+  return { success: true, message: t("action.report.resolveSuccess") };
 }

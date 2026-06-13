@@ -7,6 +7,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Search, X, Check } from "lucide-react";
 import { clsx } from "clsx";
+import { useT } from "@/components/shared/LanguageProvider";
 import type { SelectOption } from "@/types";
 
 interface MultiComboboxProps {
@@ -23,8 +24,10 @@ interface MultiComboboxProps {
 
 export default function MultiCombobox({
   label, helperText, error, options, value, onChange,
-  placeholder = "Pilih satu atau lebih...", required, disabled,
+  placeholder, required, disabled,
 }: MultiComboboxProps) {
+  const t = useT();
+  const resolvedPlaceholder = placeholder ?? t("combobox.multiPlaceholder");
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -77,7 +80,7 @@ export default function MultiCombobox({
           )}
         >
           <span className={clsx("truncate", value.length === 0 && "text-gray-400")}>
-            {value.length === 0 ? placeholder : `${value.length} area dipilih`}
+            {value.length === 0 ? resolvedPlaceholder : t("combobox.areasSelected", { n: String(value.length) })}
           </span>
           <ChevronDown size={16} className={clsx("flex-shrink-0 text-gray-400 transition-transform", isOpen && "rotate-180")} />
         </button>
@@ -91,13 +94,13 @@ export default function MultiCombobox({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ketik untuk mencari..."
+                placeholder={t("combobox.searchPlaceholder")}
                 className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
               />
             </div>
             <ul className="max-h-52 overflow-y-auto py-1">
               {filtered.length === 0 ? (
-                <li className="px-3 py-2 text-sm text-gray-400">Tidak ditemukan</li>
+                <li className="px-3 py-2 text-sm text-gray-400">{t("combobox.noResults")}</li>
               ) : (
                 filtered.map((opt) => {
                   const isSel = value.includes(opt.value);
@@ -133,7 +136,7 @@ export default function MultiCombobox({
                 type="button"
                 onClick={() => remove(o.value)}
                 className="rounded-full p-0.5 transition-colors hover:bg-brand-100"
-                aria-label={`Hapus ${o.label}`}
+                aria-label={t("combobox.removeChip", { label: o.label })}
               >
                 <X size={12} />
               </button>

@@ -9,7 +9,10 @@ ITS Found adalah platform pelaporan dan pencarian barang hilang/ditemukan yang d
 - **Alur Verifikasi Admin (Khusus Penemuan)**: Untuk mencegah penyalahgunaan dan memastikan barang diamankan, setiap laporan *Penemuan* harus diverifikasi oleh Admin.
 - **Pencatatan Fasilitas Penitipan**: Laporan penemuan dilengkapi dengan informasi detail fasilitas penitipan (contoh: Pos Satpam, TU Departemen) beserta alamat dan nomor kontaknya.
 - **Timeline Riwayat Status**: Laporan dilengkapi rekam jejak status transparan, menampilkan siapa yang membuat, memverifikasi (Admin), hingga mengambil/menyelesaikan laporan.
-- **Dashboard Interaktif**: Filter terintegrasi untuk mencari laporan spesifik dan antarmuka kartu (card) yang responsif.
+- **Dashboard Interaktif**: Filter terintegrasi untuk mencari laporan spesifik dan antarmuka kartu (card) yang responsif, dengan paginasi (maks. 20 laporan per halaman).
+- **Laporan Kehilangan Multi-Area**: Satu laporan *Kehilangan* dapat menjangkau beberapa area sekaligus untuk memperluas kemungkinan kecocokan.
+- **Notifikasi Terbaca/Belum Terbaca**: Halaman notifikasi memisahkan notifikasi baru (belum dibaca) dan riwayat (sudah dibaca, dengan paginasi), serta badge jumlah notifikasi belum dibaca yang sinkron di seluruh aplikasi.
+- **Mode Gelap & Multi-Bahasa**: Tampilan mendukung dark mode dan dua bahasa (Indonesia/Inggris) yang dapat diganti melalui halaman Pengaturan.
 
 ## Struktur Direktori Utama
 

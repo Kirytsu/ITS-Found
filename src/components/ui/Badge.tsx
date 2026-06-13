@@ -16,13 +16,13 @@ interface BadgeProps {
 }
 
 const variantConfig: Record<BadgeVariant, { classes: string; key: string }> = {
-  active:     { classes: "bg-brand-500 text-white",  key: "status.active" },
-  unverified: { classes: "bg-yellow-500 text-white", key: "status.unverified" },
-  resolved:   { classes: "bg-gray-500 text-white",   key: "status.resolved" },
-  rejected:   { classes: "bg-red-500 text-white",    key: "status.rejected" },
-  lost:       { classes: "bg-orange-600 text-white", key: "type.lost" },
-  found:      { classes: "bg-brand-500 text-white",  key: "type.found" },
-  claimed:    { classes: "bg-amber-500 text-white",  key: "status.claimed" },
+  active:     { classes: "bg-brand-500 text-[#ffffff]",  key: "status.active" },
+  unverified: { classes: "bg-yellow-500 text-[#ffffff]", key: "status.unverified" },
+  resolved:   { classes: "bg-gray-500 text-[#ffffff]",   key: "status.resolved" },
+  rejected:   { classes: "bg-red-500 text-[#ffffff]",    key: "status.rejected" },
+  lost:       { classes: "bg-orange-600 text-[#ffffff]", key: "type.lost" },
+  found:      { classes: "bg-blue-400 text-[#ffffff]",   key: "type.found" },
+  claimed:    { classes: "bg-amber-500 text-[#ffffff]",  key: "status.claimed" },
 };
 
 export default function Badge({ variant, label, className, locale = DEFAULT_LOCALE }: BadgeProps) {

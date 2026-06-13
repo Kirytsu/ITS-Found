@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import PageHeader from "@/components/ui/PageHeader";
+import Pagination from "@/components/ui/Pagination";
 import FilterBar from "@/components/shared/FilterBar";
 import ReportCard from "@/components/shared/ReportCard";
 import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
@@ -18,17 +19,29 @@ import type { ReportFilters, ReportStatus } from "@/types";
 
 interface SP { areaId?: string; categoryId?: string; status?: string; search?: string; page?: string; }
 
+const PAGE_SIZE = 20;
+
 async function MyReportList({ sp, locale }: { sp: SP; locale: Locale }) {
   const t = getTranslator(locale);
+  const page = sp.page ? parseInt(sp.page) : 1;
   const filters: ReportFilters = {
     areaId: sp.areaId, categoryId: sp.categoryId, search: sp.search,
     status: sp.status as ReportStatus | undefined,
-    page: sp.page ? parseInt(sp.page) : 1, limit: 12,
+    page, limit: PAGE_SIZE,
   };
   const reports = await getMyReports(filters);
-  const nextPage = (parseInt(sp.page ?? "1")) + 1;
 
   if (reports.length === 0) {
+    const hasFilters = Boolean(sp.areaId || sp.categoryId || sp.status || sp.search);
+
+    if (hasFilters) {
+      return (
+        <div className="flex flex-col items-center py-16 gap-4">
+          <p className="text-sm text-gray-400 text-center">{t("myReports.emptyFiltered")}</p>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center py-16 gap-4">
         <p className="text-sm text-gray-400 text-center">{t("myReports.empty")}</p>
@@ -53,13 +66,15 @@ async function MyReportList({ sp, locale }: { sp: SP; locale: Locale }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {reports.map((r) => <ReportCard key={r.id} report={r} showTypeBadge locale={locale} />)}
       </div>
-      {reports.length === 12 && (
-        <Link href={`/my-reports?${new URLSearchParams({ ...sp, page: String(nextPage) })}`}>
-          <button className="w-full py-3 rounded-full bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
-            {t("common.showMore")}
-          </button>
-        </Link>
-      )}
+      <Pagination
+        page={page}
+        hasNext={reports.length === PAGE_SIZE}
+        basePath="/my-reports"
+        searchParams={sp}
+        prevLabel={t("common.prev")}
+        nextLabel={t("common.next")}
+        pageLabel={t("common.page", { n: page })}
+      />
     </div>
   );
 }

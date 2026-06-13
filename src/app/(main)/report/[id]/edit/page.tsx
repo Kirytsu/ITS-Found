@@ -7,6 +7,7 @@ import ReportFormLayout from "@/components/shared/ReportFormLayout";
 import { getReportById } from "@/lib/actions/report.actions";
 import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
 import { getSession } from "@/lib/auth";
+import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,10 +21,11 @@ export default async function EditReportPage({ params }: { params: Promise<{ id:
   const session = await getSession();
   if (!session) redirect(`/login?from=/report/${id}/edit`);
 
-  const [report, areas, categories] = await Promise.all([
+  const [report, areas, categories, t] = await Promise.all([
     getReportById(id),
     getAllAreas(),
     getAllCategories(),
+    getT(),
   ]);
 
   if (!report) notFound();
@@ -32,7 +34,7 @@ export default async function EditReportPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Ubah Laporan" />
+      <PageHeader title={t("page.editReport.title")} />
       <ReportFormLayout
         type={report.type === "LOST" ? "lost" : "found"}
         areas={areas}
