@@ -93,7 +93,10 @@ export default function ReportDetailActions({
     startTransition(async () => {
       const result = await deleteReport(report.id);
       if (result.success) {
-        window.location.href = "/my-reports?notif=1";
+        // Navigate away BEFORE the deleted detail page can re-render (avoids a 404 flash).
+        // router.replace is a client transition — the detail route unmounts immediately.
+        setShowConfirm(false);
+        router.replace("/my-reports?notif=1");
       } else {
         addToast(result.message, "error");
         setShowConfirm(false);

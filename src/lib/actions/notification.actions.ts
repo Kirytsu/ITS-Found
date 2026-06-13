@@ -24,6 +24,9 @@ export async function findMatches(
     include: { area: true, areas: true, category: true, author: true, facility: true },
   });
   if (!report) return [];
+  // Matches only surface once the source report itself is PUBLISHED.
+  // A FOUND report must be admin-verified first; an UNVERIFIED/REJECTED report shows no matches.
+  if (report.status !== "PUBLISHED") return [];
 
   const oppositeType = report.type === "LOST" ? "FOUND" : "LOST";
   // A report may span multiple areas (LOST) — match on any overlap.
@@ -77,27 +80,22 @@ export async function createMatchNotifications(
   });
   if (!source) return;
 
-  // Create notifications in parallel
+  // Create one notification per user→report pair, skipping pairs that already exist
+  // (edit re-runs matching, so the same match must not notify twice).
+  const ensureMatchNotif = async (userId: string, matchedReportId: string) => {
+    const existing = await db.notification.findFirst({
+      where: { userId, actionKey: "match", matchedReportId },
+    });
+    if (existing) return;
+    await db.notification.create({ data: { userId, actionKey: "match", matchedReportId } });
+  };
+
   await Promise.all(
     matches.map(async (match) => {
       // Only notify if authors are different (don't notify user about their own reports)
       if (match.authorId !== source.authorId) {
-        // Notify the source report's author
-        await db.notification.create({
-          data: {
-            userId: source.authorId,
-            actionKey: "match",
-            matchedReportId: match.id,
-          },
-        });
-        // Notify the matched report's author
-        await db.notification.create({
-          data: {
-            userId: match.authorId,
-            actionKey: "match",
-            matchedReportId: sourceReportId,
-          },
-        });
+        await ensureMatchNotif(source.authorId, match.id);       // notify source author
+        await ensureMatchNotif(match.authorId, sourceReportId);  // notify matched author
       }
     })
   );
@@ -292,10 +290,41 @@ export async function notifyUserReportEdited(
   });
 }
 
-/** Self-notification: user deleted their report (no reportId — already deleted). */
-export async function notifyUserReportDeleted(userId: string): Promise<void> {
+/** Self-notification: user deleted their report (no reportId — already deleted).
+ *  Title is snapshotted so the card can still name the gone report. */
+export async function notifyUserReportDeleted(userId: string, title: string): Promise<void> {
   await db.notification.create({
-    data: { userId, actionKey: "reportDeleted", matchedReportId: null },
+    data: { userId, actionKey: "reportDeleted", matchedReportId: null, title },
+  });
+}
+
+/** Notifies the report author when admin rejects their FOUND report. */
+export async function notifyReporterRejected(reportId: string): Promise<void> {
+  const report = await db.report.findUnique({ where: { id: reportId } });
+  if (!report) return;
+  await db.notification.create({
+    data: { userId: report.authorId, actionKey: "reportRejected", matchedReportId: reportId },
+  });
+}
+
+/** Self-notification: claimant submitted a claim on a FOUND report. */
+export async function notifyClaimantClaimed(userId: string, reportId: string): Promise<void> {
+  await db.notification.create({
+    data: { userId, actionKey: "claimMade", matchedReportId: reportId },
+  });
+}
+
+/** Self-notification: claimant cancelled their own claim. */
+export async function notifyClaimantCancelled(userId: string, reportId: string): Promise<void> {
+  await db.notification.create({
+    data: { userId, actionKey: "claimCancelledSelf", matchedReportId: reportId },
+  });
+}
+
+/** Self-notification: whoever resolved a report (admin or LOST owner) marked it done. */
+export async function notifyResolverDone(userId: string, reportId: string): Promise<void> {
+  await db.notification.create({
+    data: { userId, actionKey: "reportResolvedSelf", matchedReportId: reportId },
   });
 }
 

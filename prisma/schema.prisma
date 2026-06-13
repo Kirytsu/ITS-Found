@@ -122,6 +122,10 @@ model Notification {
   actionKey String  @default("match")
   isRead    Boolean @default(false)
 
+  // Snapshot of the related report title — kept for notifications whose report
+  // no longer exists (e.g. "report deleted"), where matchedReport is null.
+  title     String?
+
   userId  String
   user    User    @relation(fields: [userId], references: [id])
 

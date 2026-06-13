@@ -1,82 +1,80 @@
-"use client";
 /**
  * src/app/(main)/admin/verification/page.tsx
- * Admin verification queue — now uses VerificationCard component.
+ * Verification queue — FOUND reports that either need verifying (UNVERIFIED, default)
+ * or have already been verified (PUBLISHED). Verify/Reject live on unverified cards.
+ * (Full status access + edit lives on the public /found + /lost pages for admins.)
  */
-import { useState, useEffect, useTransition } from "react";
-import { ShieldCheck } from "lucide-react";
+import { Suspense } from "react";
 import PageHeader from "@/components/ui/PageHeader";
-import VerificationCard from "@/components/shared/VerificationCard";
-import { getUnverifiedFoundReports, verifyReport, rejectReport } from "@/lib/actions/admin.actions";
-import { useT } from "@/components/shared/LanguageProvider";
-import type { ReportWithRelations } from "@/types";
+import Pagination from "@/components/ui/Pagination";
+import FilterBar from "@/components/shared/FilterBar";
+import AdminReportList from "@/components/shared/AdminReportList";
+import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
+import { getAllReports } from "@/lib/actions/admin.actions";
+import { getLocale } from "@/lib/i18n/server";
+import { getTranslator } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/config";
 
-export default function AdminVerificationPage() {
-  const t = useT();
-  const [reports, setReports] = useState<ReportWithRelations[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const [feedback, setFeedback] = useState("");
+interface SP { areaId?: string; categoryId?: string; status?: string; dateFrom?: string; dateTo?: string; search?: string; page?: string; }
 
-  useEffect(() => {
-    getUnverifiedFoundReports().then((data) => {
-      setReports(data);
-      setLoaded(true);
-    });
-  }, []);
+const PAGE_SIZE = 20;
 
-  const handleVerify = (id: string) => {
-    startTransition(async () => {
-      const result = await verifyReport(id);
-      setFeedback(result.message);
-      setReports((prev) => prev.filter((r) => r.id !== id));
-    });
-  };
+async function AdminList({ sp, locale }: { sp: SP; locale: Locale }) {
+  const t = getTranslator(locale);
+  const page = sp.page ? parseInt(sp.page) : 1;
 
-  const handleReject = (id: string) => {
-    if (!confirm(t("admin.verify.confirmReject"))) return;
-    startTransition(async () => {
-      const result = await rejectReport(id);
-      setFeedback(result.message);
-      setReports((prev) => prev.filter((r) => r.id !== id));
-    });
-  };
+  // Verify queue only deals with two states; anything else falls back to UNVERIFIED.
+  const status = sp.status === "PUBLISHED" ? "PUBLISHED" : "UNVERIFIED";
+
+  const reports = await getAllReports({
+    type: "FOUND",
+    status,
+    areaId: sp.areaId,
+    categoryId: sp.categoryId,
+    search: sp.search,
+    dateFrom: sp.dateFrom ? new Date(sp.dateFrom) : undefined,
+    dateTo: sp.dateTo ? new Date(sp.dateTo) : undefined,
+    page,
+    limit: PAGE_SIZE,
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <AdminReportList reports={reports} locale={locale} />
+      <Pagination
+        page={page}
+        hasNext={reports.length === PAGE_SIZE}
+        basePath="/admin/verification"
+        searchParams={sp}
+        prevLabel={t("common.prev")}
+        nextLabel={t("common.next")}
+        pageLabel={t("common.page", { n: page })}
+      />
+    </div>
+  );
+}
+
+export default async function AdminVerificationPage({ searchParams }: { searchParams: Promise<SP> }) {
+  const sp = await searchParams;
+  const locale = await getLocale();
+  const t = getTranslator(locale);
+  const [areas, categories] = await Promise.all([getAllAreas(), getAllCategories()]);
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={t("admin.verify.title")} />
 
-      {feedback && (
-        <div className="rounded-lg bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-800">
-          {feedback}
-        </div>
-      )}
+      {/* Verify filter: Menunggu / Terverifikasi (default Menunggu) */}
+      <Suspense fallback={<div className="h-36 rounded-xl bg-gray-100 animate-pulse" />}>
+        <FilterBar
+          areas={areas} categories={categories}
+          showStatus statusMode="verify" showDateRange
+        />
+      </Suspense>
 
-      {!loaded ? (
-        <p className="py-8 text-center text-sm text-gray-400">{t("common.loading")}</p>
-      ) : reports.length === 0 ? (
-        <div className="flex flex-col items-center py-16 gap-3">
-          <ShieldCheck size={48} className="text-brand-300" />
-          <p className="text-sm text-gray-400">{t("admin.verify.empty")}</p>
-        </div>
-      ) : (
-        <>
-          <p className="text-xs text-gray-500 font-medium">
-            {t("admin.verify.pendingCount", { n: String(reports.length) })}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {reports.map((r) => (
-              <VerificationCard
-                key={r.id}
-                report={r}
-                onVerify={handleVerify}
-                onReject={handleReject}
-                isPending={isPending}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      <Suspense fallback={<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{Array.from({length:4}).map((_,i) => <div key={i} className="h-64 rounded-2xl bg-gray-100 animate-pulse" />)}</div>}>
+        <AdminList sp={sp} locale={locale} />
+      </Suspense>
     </div>
   );
 }

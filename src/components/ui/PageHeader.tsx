@@ -7,6 +7,7 @@
  */
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { useT } from "@/components/shared/LanguageProvider";
 
 interface PageHeaderProps {
   title: string;
@@ -15,6 +16,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, onBack }: PageHeaderProps) {
   const router = useRouter();
+  const t = useT();
 
   return (
     <div className="flex items-center gap-2 py-2">
@@ -22,7 +24,7 @@ export default function PageHeader({ title, onBack }: PageHeaderProps) {
         type="button"
         onClick={onBack ?? (() => router.back())}
         className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
-        aria-label="Kembali"
+        aria-label={t("common.back")}
       >
         <ChevronLeft size={22} />
       </button>

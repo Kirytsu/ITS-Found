@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireAdmin } from "../auth";
 import { getT } from "../i18n/server";
-import { findMatches, createMatchNotifications, notifyReporterVerified, notifyClaimerReportResolved } from "./notification.actions";
+import { findMatches, createMatchNotifications, notifyReporterVerified, notifyReporterRejected } from "./notification.actions";
 import type { ActionResult, ReportWithRelations } from "../../types";
 
 const REPORT_INCLUDE = {
@@ -35,19 +35,44 @@ export async function getUnverifiedFoundReports(): Promise<ReportWithRelations[]
   return reports as unknown as ReportWithRelations[];
 }
 
-/** Returns ALL reports for admin overview, with optional filters. */
+/** Returns ALL reports for admin overview, with full filtering + pagination. */
 export async function getAllReports(filters?: {
   status?: string;
   type?: string;
+  areaId?: string;
+  categoryId?: string;
+  search?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
 }): Promise<ReportWithRelations[]> {
   await requireAdmin();
+  const { status, type, areaId, categoryId, search, dateFrom, dateTo, page = 1, limit = 20 } = filters ?? {};
+
   const reports = await db.report.findMany({
     where: {
-      ...(filters?.status && { status: filters.status as never }),
-      ...(filters?.type && { type: filters.type as never }),
+      ...(status && { status: status as never }),
+      ...(type && { type: type as never }),
+      ...(areaId && { areas: { some: { id: areaId } } }),
+      ...(categoryId && { categoryId }),
+      ...(dateFrom || dateTo
+        ? { incidentDate: { ...(dateFrom && { gte: dateFrom }), ...(dateTo && { lte: dateTo }) } }
+        : {}),
+      ...(search?.trim()
+        ? {
+            OR: [
+              { title: { contains: search } },
+              { description: { contains: search } },
+              { locationDetail: { contains: search } },
+            ],
+          }
+        : {}),
     },
     include: REPORT_INCLUDE,
     orderBy: { createdAt: "desc" },
+    skip: (page - 1) * limit,
+    take: limit,
   });
   return reports as unknown as ReportWithRelations[];
 }
@@ -103,6 +128,9 @@ export async function rejectReport(id: string): Promise<ActionResult> {
   }
 
   await db.report.update({ where: { id }, data: { status: "REJECTED" } });
+
+  // Notify the report author that their FOUND report was rejected
+  await notifyReporterRejected(id);
 
   // Revalidate all relevant paths
   revalidatePath("/admin/verification");

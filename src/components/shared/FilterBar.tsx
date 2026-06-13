@@ -19,25 +19,47 @@ interface FilterBarProps {
   categories: SelectOption[];
   showStatus?: boolean;
   showDateRange?: boolean;
+  /** "public" → Aktif/Selesai (default Aktif); "full" → all 4 + all-option; "verify" → Menunggu/Terverifikasi. */
+  statusMode?: "public" | "full" | "verify";
+  /** Overrides the status shown when no ?status param is present (e.g. admin defaults to UNVERIFIED). */
+  initialStatus?: string;
 }
 
-export default function FilterBar({ areas, categories, showStatus = false, showDateRange = true }: FilterBarProps) {
+export default function FilterBar({ areas, categories, showStatus = false, showDateRange = true, statusMode = "full", initialStatus }: FilterBarProps) {
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
   const t            = useT();
   const [, startTransition] = useTransition();
 
-  const STATUS_OPTIONS: SelectOption[] = [
-    { value: "PUBLISHED",  label: t("status.active") },
-    { value: "UNVERIFIED", label: t("status.unverified") },
-    { value: "RESOLVED",   label: t("status.resolved") },
-    { value: "REJECTED",   label: t("status.rejected") },
-  ];
+  const isPublicStatus = statusMode === "public";
+  const isVerifyStatus = statusMode === "verify";
+  // public + verify never have an "all" option — always a concrete status selected
+  const noAllOption = isPublicStatus || isVerifyStatus;
+
+  const STATUS_OPTIONS: SelectOption[] = isPublicStatus
+    ? [
+        { value: "PUBLISHED", label: t("status.active") },
+        { value: "RESOLVED",  label: t("status.resolved") },
+      ]
+    : isVerifyStatus
+    ? [
+        { value: "UNVERIFIED", label: t("status.unverified") },
+        { value: "PUBLISHED",  label: t("status.verified") },
+      ]
+    : [
+        { value: "PUBLISHED",  label: t("status.active") },
+        { value: "UNVERIFIED", label: t("status.unverified") },
+        { value: "RESOLVED",   label: t("status.resolved") },
+        { value: "REJECTED",   label: t("status.rejected") },
+      ];
+
+  // Default when no ?status param: explicit override > public Aktif > verify Menunggu > full all.
+  const defaultStatus = initialStatus ?? (isPublicStatus ? "PUBLISHED" : isVerifyStatus ? "UNVERIFIED" : "");
 
   const [area, setArea]         = useState(searchParams.get("areaId") ?? "");
   const [category, setCategory] = useState(searchParams.get("categoryId") ?? "");
-  const [status, setStatus]     = useState(searchParams.get("status") ?? "");
+  const [status, setStatus]     = useState(searchParams.get("status") ?? defaultStatus);
   const [search, setSearch]     = useState(searchParams.get("search") ?? "");
   const [dateFrom, setDateFrom] = useState(searchParams.get("dateFrom") ?? "");
   const [dateTo, setDateTo]     = useState(searchParams.get("dateTo") ?? "");
@@ -60,19 +82,19 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
           onChange={(v) => { setArea(v); push({ areaId: v }); }}
           placeholder={t("filter.allAreas")}
         />
-        <Select
+        <Combobox
           options={categories} value={category}
-          onChange={(e) => { setCategory(e.target.value); push({ categoryId: e.target.value }); }}
+          onChange={(v) => { setCategory(v); push({ categoryId: v }); }}
           placeholder={t("filter.allTypes")}
         />
       </div>
 
-      {/* Status (My Reports only) */}
+      {/* Status — public/verify: fixed option set (no all-option); full: all 4 + all-option */}
       {showStatus && (
         <Select
           options={STATUS_OPTIONS} value={status}
           onChange={(e) => { setStatus(e.target.value); push({ status: e.target.value }); }}
-          placeholder={t("filter.allStatus")}
+          placeholder={noAllOption ? undefined : t("filter.allStatus")}
         />
       )}
 

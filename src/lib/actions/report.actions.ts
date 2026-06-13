@@ -5,12 +5,12 @@
  */
 import { revalidatePath } from "next/cache";
 import { db } from "../db";
-import { requireSession } from "../auth";
+import { requireSession, getSession } from "../auth";
 import { isValidDate, isFutureDate } from "../utils";
 import { getT } from "../i18n/server";
 import {
   findMatches, createMatchNotifications, notifyAdminsNewFoundReport, notifyClaimerReportResolved,
-  notifyUserReportCreated, notifyUserReportEdited, notifyUserReportDeleted,
+  notifyUserReportCreated, notifyUserReportEdited, notifyUserReportDeleted, notifyResolverDone,
 } from "./notification.actions";
 import type {
   ActionResult,
@@ -105,6 +105,9 @@ export async function createReport(
 }
 
 // ── Read: Public List ─────────────────────────────────────────────────────────
+// Public callers ONLY ever see PUBLISHED reports — a status filter from the URL is
+// ignored for them (prevents leaking UNVERIFIED / REJECTED items of other users).
+// Admins may pass any status filter (or none → all statuses) to inspect the full list.
 export async function getPublicReports(
   type: "LOST" | "FOUND",
   filters: ReportFilters = {}
@@ -119,9 +122,19 @@ export async function getPublicReports(
     limit = 10,
   } = filters;
 
+  const session = await getSession();
+  const isAdmin = session?.role === "ADMIN";
+
+  // Admin has elevated access: honor any status filter, or show ALL statuses when none.
+  // Regular users only ever see PUBLISHED ("Aktif") or RESOLVED ("Selesai"); anything
+  // else (UNVERIFIED / REJECTED) is clamped to PUBLISHED so it never leaks.
+  const statusClause = isAdmin
+    ? (filters.status ? { status: filters.status } : {})
+    : { status: filters.status === "RESOLVED" ? "RESOLVED" : "PUBLISHED" };
+
   const where: Record<string, unknown> = {
     type,
-    status: filters.status || "PUBLISHED",
+    ...statusClause,
     ...(areaId && { areas: { some: { id: areaId } } }),
     ...(categoryId && { categoryId }),
     ...(dateFrom || dateTo
@@ -259,9 +272,17 @@ export async function updateReport(
 
   await notifyUserReportEdited(session.userId, id);
 
+  // Re-run smart match: edits to area/category/date can surface new opposite-type matches.
+  // Only PUBLISHED reports participate (FOUND stays UNVERIFIED until admin verification).
+  if (report.status === "PUBLISHED") {
+    const matches = await findMatches(id);
+    await createMatchNotifications(id, matches);
+  }
+
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");
   revalidatePath("/found");
+  revalidatePath("/lost");
   revalidatePath("/");
 
   return { success: true, message: t("action.report.updateSuccess") };
@@ -290,8 +311,8 @@ export async function deleteReport(id: string): Promise<ActionResult> {
   await db.notification.deleteMany({ where: { matchedReportId: id } });
   await db.report.delete({ where: { id } });
 
-  // Self-notification after deletion (matchedReportId null — report gone)
-  await notifyUserReportDeleted(session.userId);
+  // Self-notification after deletion (matchedReportId null — report gone, title snapshotted)
+  await notifyUserReportDeleted(session.userId, report.title);
 
   revalidatePath("/my-reports");
   revalidatePath("/lost");
@@ -366,6 +387,8 @@ export async function resolveReport(
   if (report.type === "FOUND" && report.claim && takerName) {
     await notifyClaimerReportResolved(id);
   }
+  // Self-record for whoever resolved it (admin for FOUND, owner for LOST)
+  await notifyResolverDone(session.userId, id);
 
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");

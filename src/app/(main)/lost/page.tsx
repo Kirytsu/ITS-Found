@@ -11,6 +11,7 @@ import ReportCard from "@/components/shared/ReportCard";
 import NotifCardToast from "@/components/shared/NotifCardToast";
 import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
 import { getPublicReports } from "@/lib/actions/report.actions";
+import { getSession } from "@/lib/auth";
 import { getLocale } from "@/lib/i18n/server";
 import { getTranslator } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/config";
@@ -65,6 +66,8 @@ export default async function LostPage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const locale = await getLocale();
   const t = getTranslator(locale);
+  const session = await getSession();
+  const isAdmin = session?.role === "ADMIN";
   const [areas, categories] = await Promise.all([getAllAreas(), getAllCategories()]);
 
   return (
@@ -78,8 +81,12 @@ export default async function LostPage({ searchParams }: { searchParams: Promise
           </button>
         </Link>
       </div>
+      {/* Admin: full status access (all 4). Public: Aktif / Selesai only (default Aktif). */}
       <Suspense fallback={<div className="h-36 rounded-xl bg-gray-100 animate-pulse" />}>
-        <FilterBar areas={areas} categories={categories} showStatus showDateRange />
+        <FilterBar
+          areas={areas} categories={categories}
+          showStatus statusMode={isAdmin ? "full" : "public"} showDateRange
+        />
       </Suspense>
       <Suspense fallback={<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{Array.from({length:4}).map((_,i) => <div key={i} className="h-64 rounded-2xl bg-gray-100 animate-pulse" />)}</div>}>
         <ReportList sp={sp} locale={locale} />

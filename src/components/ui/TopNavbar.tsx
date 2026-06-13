@@ -246,10 +246,13 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
   return (
     <>
       {/* ══ DESKTOP: Fixed top header (right of sidebar) ═════════════════════ */}
-      {/* Transparent — gray-50 = dark page bg, so border-gray-200/20 stays subtle in both modes */}
-      <header className="hidden lg:flex fixed top-0 left-64 right-0 z-30 h-14 bg-transparent border-b border-gray-200/30 items-center justify-between px-6">
-        {/* Left: theme + language toggles */}
-        <div className="flex items-center gap-1">
+      {/* Fully transparent, no border. pointer-events-none so the empty strip doesn't
+          block clicks on content beneath; the control cluster re-enables pointer events. */}
+      <header className="hidden lg:flex fixed top-0 left-64 right-0 z-30 h-14 bg-transparent items-center justify-end px-6 pointer-events-none">
+        {/* All controls right-aligned: theme + lang, then notif / settings / profile.
+            dark: gray-200=#27272a (hover), brand-100=#14254d (active), brand-600=#7aa0f5 (text) */}
+        <div className="flex items-center gap-1 pointer-events-auto">
+          {/* Theme toggle */}
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-xl transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
@@ -257,75 +260,76 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
           >
             {theme === "dark" ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}
           </button>
+
+          {/* Language toggle */}
           <button
             onClick={toggleLocale}
             className="px-2.5 py-1.5 rounded-xl transition-colors text-xs font-bold tracking-wide text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
-            aria-label="Switch language"
+            aria-label={t("common.switchLanguage")}
           >
             {locale === "id" ? "ID" : "EN"}
           </button>
-        </div>
 
-        {/* Right: notifications + settings + profile */}
-        <div className="flex items-center gap-1">
-        {/* Notifications */}
-        {/* dark: gray-200=#27272a (hover), brand-100=#14254d (active), brand-600=#7aa0f5 (text) */}
-        <Link
-          href="/notifications"
-          className={clsx(
-            "relative p-2.5 rounded-xl transition-colors",
-            pathname === "/notifications"
-              ? "bg-brand-50 text-brand-700 dark:bg-brand-100/50 dark:text-brand-600"
-              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
-          )}
-          aria-label={t("nav.notifications")}
-        >
-          <Bell size={20} strokeWidth={pathname === "/notifications" ? 2.5 : 2} />
-          {currentDisplayCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
-              {currentDisplayCount > 99 ? "99+" : currentDisplayCount}
+          {/* Divider — gray-300 dark = #3f3f46 */}
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-300 mx-1" />
+
+          {/* Notifications */}
+          <Link
+            href="/notifications"
+            className={clsx(
+              "relative p-2.5 rounded-xl transition-colors",
+              pathname === "/notifications"
+                ? "bg-brand-50 text-brand-700 dark:bg-brand-100/50 dark:text-brand-600"
+                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
+            )}
+            aria-label={t("nav.notifications")}
+          >
+            <Bell size={20} strokeWidth={pathname === "/notifications" ? 2.5 : 2} />
+            {currentDisplayCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                {currentDisplayCount > 99 ? "99+" : currentDisplayCount}
+              </span>
+            )}
+          </Link>
+
+          {/* Settings */}
+          <Link
+            href="/settings"
+            className={clsx(
+              "p-2.5 rounded-xl transition-colors",
+              pathname === "/settings"
+                ? "bg-brand-50 text-brand-700 dark:bg-brand-100/50 dark:text-brand-600"
+                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
+            )}
+            aria-label={t("nav.settings")}
+          >
+            <Settings size={20} strokeWidth={pathname === "/settings" ? 2.5 : 2} />
+          </Link>
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-300 mx-1" />
+
+          {/* Profile — gray-700 dark = #e4e4e7 (legible text on dark) */}
+          <Link
+            href="/profile"
+            className={clsx(
+              "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors",
+              pathname === "/profile"
+                ? "bg-brand-50 dark:bg-brand-100/50"
+                : "hover:bg-gray-100 dark:hover:bg-gray-200"
+            )}
+          >
+            <div className="w-7 h-7 rounded-full bg-linear-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0 select-none">
+              {userName ? userName.charAt(0).toUpperCase() : "?"}
+            </div>
+            <span className={clsx(
+              "text-sm font-semibold max-w-[140px] truncate",
+              pathname === "/profile" ? "text-brand-700 dark:text-brand-600" : "text-gray-700 dark:text-gray-700"
+            )}>
+              {userName ?? "—"}
             </span>
-          )}
-        </Link>
-
-        {/* Settings */}
-        <Link
-          href="/settings"
-          className={clsx(
-            "p-2.5 rounded-xl transition-colors",
-            pathname === "/settings"
-              ? "bg-brand-50 text-brand-700 dark:bg-brand-100/50 dark:text-brand-600"
-              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
-          )}
-          aria-label={t("nav.settings")}
-        >
-          <Settings size={20} strokeWidth={pathname === "/settings" ? 2.5 : 2} />
-        </Link>
-
-        {/* Divider — gray-300 dark = #3f3f46 */}
-        <div className="w-px h-5 bg-gray-200 dark:bg-gray-300 mx-1" />
-
-        {/* Profile — gray-700 dark = #e4e4e7 (legible text on dark) */}
-        <Link
-          href="/profile"
-          className={clsx(
-            "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors",
-            pathname === "/profile"
-              ? "bg-brand-50 dark:bg-brand-100/50"
-              : "hover:bg-gray-100 dark:hover:bg-gray-200"
-          )}
-        >
-          <div className="w-7 h-7 rounded-full bg-linear-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0 select-none">
-            {userName ? userName.charAt(0).toUpperCase() : "?"}
-          </div>
-          <span className={clsx(
-            "text-sm font-semibold max-w-[140px] truncate",
-            pathname === "/profile" ? "text-brand-700 dark:text-brand-600" : "text-gray-700 dark:text-gray-700"
-          )}>
-            {userName ?? "—"}
-          </span>
-        </Link>
-        </div>{/* end right section */}
+          </Link>
+        </div>
       </header>
 
       {/* ══ MOBILE: Fixed top bar ════════════════════════════════════════════ */}
@@ -333,7 +337,7 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
         <button
           onClick={() => setDrawerOpen(true)}
           className="p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
-          aria-label="Menu"
+          aria-label={t("common.menu")}
         >
           <Menu size={22} />
         </button>

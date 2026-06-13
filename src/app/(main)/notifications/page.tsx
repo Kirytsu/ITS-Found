@@ -8,11 +8,11 @@ import {
 } from "lucide-react";
 import Pagination from "@/components/ui/Pagination";
 import NotifCardWrapper from "@/components/shared/NotifCardWrapper";
+import ClearReadButton from "@/components/shared/ClearReadButton";
 import { requireSession } from "@/lib/auth";
 import {
   getMyNotifications,
   markAllNotificationsAsRead,
-  clearReadNotifications,
 } from "@/lib/actions/notification.actions";
 import { getLocale } from "@/lib/i18n/server";
 import { getTranslator, type Translator } from "@/lib/i18n/dictionaries";
@@ -42,6 +42,8 @@ function getNotifMeta(actionKey: string): NotifMeta {
 
   switch (actionKey) {
     case "claimCancelled":
+    case "claimCancelledSelf":
+    case "reportRejected":
     case "reportDeleted":
       return {
         card: "bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-800/40",
@@ -50,10 +52,15 @@ function getNotifMeta(actionKey: string): NotifMeta {
         iconBg: "bg-red-100 dark:bg-red-900/60",
         iconColor: "text-red-600 dark:text-red-400",
         dot: "bg-red-500",
-        labelKey: actionKey === "reportDeleted" ? "notif.action.reportDeleted" : "notif.action.claimCancelled",
+        labelKey:
+          actionKey === "reportDeleted" ? "notif.action.reportDeleted"
+          : actionKey === "reportRejected" ? "notif.action.reportRejected"
+          : actionKey === "claimCancelledSelf" ? "notif.action.claimCancelledSelf"
+          : "notif.action.claimCancelled",
       };
     case "readyPickup":
     case "verified":
+    case "reportResolvedSelf":
       return {
         card: "bg-green-50 dark:bg-green-900/50 border-green-200 dark:border-green-800/40",
         readCard,
@@ -61,15 +68,19 @@ function getNotifMeta(actionKey: string): NotifMeta {
         iconBg: "bg-green-100 dark:bg-green-900/60",
         iconColor: "text-green-600 dark:text-green-400",
         dot: "bg-green-500",
-        labelKey: actionKey === "verified" ? "notif.action.verified" : "notif.action.readyPickup",
+        labelKey:
+          actionKey === "verified" ? "notif.action.verified"
+          : actionKey === "reportResolvedSelf" ? "notif.action.reportResolvedSelf"
+          : "notif.action.readyPickup",
       };
     case "claimSubmitted":
     case "claimToResolve":
+    case "claimMade":
     case "reportCreatedLost":
       return {
         card: "bg-orange-50 dark:bg-orange-900/50 border-orange-200 dark:border-orange-800/40",
         readCard,
-        icon: actionKey === "reportCreatedLost" ? PlusCircle : Clock,
+        icon: actionKey === "reportCreatedLost" ? PlusCircle : actionKey === "claimMade" ? CheckCircle2 : Clock,
         iconBg: "bg-orange-100 dark:bg-orange-900/60",
         iconColor: "text-orange-600 dark:text-orange-400",
         dot: "bg-orange-500",
@@ -152,6 +163,8 @@ export default async function NotificationsPage({ searchParams }: { searchParams
       ? "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
       : "bg-brand-100 text-brand-700 dark:bg-brand-200/50 dark:text-brand-600";
 
+    // matchedReport title when present; otherwise snapshot title (e.g. deleted report)
+    const reportTitle = matchedReport?.title ?? notification.title ?? null;
     const areaName = matchedReport?.area?.name;
     const categoryName = matchedReport?.category?.name;
 
@@ -173,9 +186,9 @@ export default async function NotificationsPage({ searchParams }: { searchParams
             )}
           </div>
 
-          {matchedReport && (
+          {reportTitle && (
             <p className={`text-xs truncate font-medium ${isReadCard ? "text-gray-400 dark:text-gray-500" : "text-gray-600 dark:text-gray-700"}`}>
-              {matchedReport.title}
+              {reportTitle}
             </p>
           )}
 
@@ -248,21 +261,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
                 {t("notif.markAllRead")}
               </button>
             </form>
-            {hasRead && (
-              <form action={async () => {
-                "use server";
-                await clearReadNotifications(session.userId);
-                revalidatePath("/notifications");
-                revalidatePath("/", "layout");
-              }}>
-                <button
-                  type="submit"
-                  className="text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/40 hover:bg-red-100 dark:hover:bg-red-900/60 border border-red-200 dark:border-red-800/40 px-4 py-2 rounded-xl transition-colors"
-                >
-                  {t("notif.clearRead")}
-                </button>
-              </form>
-            )}
+            {hasRead && <ClearReadButton userId={session.userId} />}
           </div>
         )}
       </div>

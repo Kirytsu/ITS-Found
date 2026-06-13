@@ -16,7 +16,7 @@ import { getLatestUserNotification } from "@/lib/actions/notification.actions";
 type Notif = Awaited<ReturnType<typeof getLatestUserNotification>>;
 
 interface Meta {
-  card: string;
+  accent: string;   // left-border color (type indicator on a solid card)
   icon: LucideIcon;
   iconBg: string;
   iconColor: string;
@@ -26,36 +26,47 @@ interface Meta {
 function getMeta(actionKey: string): Meta {
   switch (actionKey) {
     case "claimCancelled":
+    case "claimCancelledSelf":
+    case "reportRejected":
     case "reportDeleted":
       return {
-        card: "bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-800/40",
+        accent: "border-l-red-500",
         icon: actionKey === "reportDeleted" ? Trash2 : XCircle,
         iconBg: "bg-red-100 dark:bg-red-900/60",
         iconColor: "text-red-600 dark:text-red-400",
-        labelKey: actionKey === "reportDeleted" ? "notif.action.reportDeleted" : "notif.action.claimCancelled",
+        labelKey:
+          actionKey === "reportDeleted" ? "notif.action.reportDeleted"
+          : actionKey === "reportRejected" ? "notif.action.reportRejected"
+          : actionKey === "claimCancelledSelf" ? "notif.action.claimCancelledSelf"
+          : "notif.action.claimCancelled",
       };
     case "readyPickup":
     case "verified":
+    case "reportResolvedSelf":
       return {
-        card: "bg-green-50 dark:bg-green-900/50 border-green-200 dark:border-green-800/40",
+        accent: "border-l-green-500",
         icon: CheckCircle2,
         iconBg: "bg-green-100 dark:bg-green-900/60",
         iconColor: "text-green-600 dark:text-green-400",
-        labelKey: actionKey === "verified" ? "notif.action.verified" : "notif.action.readyPickup",
+        labelKey:
+          actionKey === "verified" ? "notif.action.verified"
+          : actionKey === "reportResolvedSelf" ? "notif.action.reportResolvedSelf"
+          : "notif.action.readyPickup",
       };
     case "claimSubmitted":
     case "claimToResolve":
+    case "claimMade":
     case "reportCreatedLost":
       return {
-        card: "bg-orange-50 dark:bg-orange-900/50 border-orange-200 dark:border-orange-800/40",
-        icon: actionKey === "reportCreatedLost" ? PlusCircle : Clock,
+        accent: "border-l-orange-500",
+        icon: actionKey === "reportCreatedLost" ? PlusCircle : actionKey === "claimMade" ? CheckCircle2 : Clock,
         iconBg: "bg-orange-100 dark:bg-orange-900/60",
         iconColor: "text-orange-600 dark:text-orange-400",
         labelKey: `notif.action.${actionKey}`,
       };
     case "reportEdited":
       return {
-        card: "bg-blue-50 dark:bg-blue-900/50 border-blue-200 dark:border-blue-800/40",
+        accent: "border-l-blue-500",
         icon: Pencil,
         iconBg: "bg-blue-100 dark:bg-blue-900/60",
         iconColor: "text-blue-600 dark:text-blue-400",
@@ -63,7 +74,7 @@ function getMeta(actionKey: string): Meta {
       };
     default:
       return {
-        card: "bg-brand-50 dark:bg-brand-100/60 border-brand-200 dark:border-brand-200/30",
+        accent: "border-l-brand-500",
         icon: actionKey === "newFoundReport" ? PackageOpen : actionKey === "reportCreatedFound" ? PlusCircle : Sparkles,
         iconBg: "bg-brand-100 dark:bg-brand-100/60",
         iconColor: "text-brand-600 dark:text-brand-600",
@@ -103,13 +114,15 @@ export default function NotifCardToast() {
 
   const meta = getMeta(notif.actionKey);
   const Icon = meta.icon;
-  const report = notif.matchedReport;
+  // matchedReport title when present; otherwise the snapshot title (e.g. deleted report)
+  const reportTitle = notif.matchedReport?.title ?? notif.title ?? null;
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 rounded-2xl border p-3.5 shadow-xl
-        transition-all duration-300 animate-in fade-in slide-in-from-top-2
-        ${meta.card}`}
+      className={`fixed top-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] flex items-start gap-3 rounded-2xl
+        border border-gray-200 dark:border-gray-200/40 border-l-4 ${meta.accent}
+        bg-white dark:bg-gray-100 p-3.5 shadow-xl
+        transition-all duration-300 animate-in fade-in slide-in-from-top-2`}
     >
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${meta.iconBg}`}>
         <Icon size={16} className={meta.iconColor} strokeWidth={2} />
@@ -119,15 +132,15 @@ export default function NotifCardToast() {
         <p className="text-sm font-semibold text-gray-900 dark:text-gray-900 leading-snug">
           {t(meta.labelKey)}
         </p>
-        {report && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{report.title}</p>
+        {reportTitle && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{reportTitle}</p>
         )}
       </div>
 
       <button
         onClick={() => setVisible(false)}
         className="shrink-0 p-0.5 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-        aria-label="Dismiss"
+        aria-label={t("common.dismiss")}
       >
         <X size={14} />
       </button>

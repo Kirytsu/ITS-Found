@@ -7,7 +7,10 @@ import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireSession } from "../auth";
 import { getT } from "../i18n/server";
-import { createClaimNotification, createClaimCancelledNotification, notifyAdminsClaimMade } from "./notification.actions";
+import {
+  createClaimNotification, createClaimCancelledNotification, notifyAdminsClaimMade,
+  notifyClaimantClaimed, notifyClaimantCancelled,
+} from "./notification.actions";
 import type { ActionResult } from "../../types";
 
 /**
@@ -76,6 +79,8 @@ export async function createClaim(
     await createClaimNotification(reportId);
     // Notify admins to mark this report as resolved after verification
     await notifyAdminsClaimMade(reportId);
+    // Self-notification: claimant has a record of their claim
+    await notifyClaimantClaimed(session.userId, reportId);
 
     // 5. Revalidate relevant paths
     revalidatePath(`/report/${reportId}`);
@@ -142,8 +147,9 @@ export async function cancelClaim(reportId: string): Promise<ActionResult> {
       where: { id: claim.id },
     });
 
-    // 4.5 Send notification to report author
+    // 4.5 Send notification to report author + self-record for the claimant
     await createClaimCancelledNotification(reportId);
+    await notifyClaimantCancelled(session.userId, reportId);
 
     // 5. Revalidate paths
     revalidatePath(`/report/${reportId}`);

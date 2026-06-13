@@ -19,6 +19,11 @@ const id: Dict = {
   "common.report": "Lapor",
   "common.loading": "Memuat...",
   "common.processing": "Memproses...",
+  "common.back": "Kembali",
+  "common.menu": "Menu",
+  "common.dismiss": "Tutup",
+  "common.switchLanguage": "Ganti bahasa",
+  "common.noPhoto": "Tidak ada foto",
 
   // ── Nav ──
   "nav.dashboard": "Dashboard",
@@ -71,6 +76,7 @@ const id: Dict = {
   // ── Status / Type ──
   "status.active": "Aktif",
   "status.unverified": "Menunggu Verifikasi",
+  "status.verified": "Terverifikasi",
   "status.resolved": "Selesai",
   "status.rejected": "Ditolak",
   "status.claimed": "Sudah Diklaim",
@@ -192,11 +198,18 @@ const id: Dict = {
   "notif.action.reportCreatedFound": "Laporan penemuan terkirim, menunggu verifikasi",
   "notif.action.reportEdited": "Laporan berhasil diperbarui",
   "notif.action.reportDeleted": "Laporan berhasil dihapus",
+  "notif.action.reportRejected": "Laporan penemuan ditolak admin",
+  "notif.action.claimMade": "Kamu mengajukan klaim",
+  "notif.action.claimCancelledSelf": "Kamu membatalkan klaim",
+  "notif.action.reportResolvedSelf": "Kamu menyelesaikan laporan",
   "notif.section.new": "Baru",
   "notif.section.earlier": "Sebelumnya",
   "notif.empty.allRead": "Tidak ada notifikasi baru",
   "notif.markAllRead": "Tandai semua dibaca",
   "notif.clearRead": "Hapus terbaca",
+  "notif.clearRead.confirmTitle": "Hapus notifikasi terbaca?",
+  "notif.clearRead.confirmBody": "Semua notifikasi yang sudah dibaca akan dihapus permanen. Notifikasi belum dibaca tetap ada.",
+  "notif.clearRead.confirm": "Hapus",
 
   // ── Settings ──
   "settings.title": "Pengaturan",
@@ -372,6 +385,11 @@ const en: Dict = {
   "common.report": "Report",
   "common.loading": "Loading...",
   "common.processing": "Processing...",
+  "common.back": "Back",
+  "common.menu": "Menu",
+  "common.dismiss": "Dismiss",
+  "common.switchLanguage": "Switch language",
+  "common.noPhoto": "No photo",
 
   // ── Nav ──
   "nav.dashboard": "Dashboard",
@@ -424,6 +442,7 @@ const en: Dict = {
   // ── Status / Type ──
   "status.active": "Active",
   "status.unverified": "Awaiting Verification",
+  "status.verified": "Verified",
   "status.resolved": "Resolved",
   "status.rejected": "Rejected",
   "status.claimed": "Claimed",
@@ -545,11 +564,18 @@ const en: Dict = {
   "notif.action.reportCreatedFound": "Found report submitted — awaiting verification",
   "notif.action.reportEdited": "Report updated successfully",
   "notif.action.reportDeleted": "Report deleted",
+  "notif.action.reportRejected": "Found report rejected by admin",
+  "notif.action.claimMade": "You submitted a claim",
+  "notif.action.claimCancelledSelf": "You cancelled your claim",
+  "notif.action.reportResolvedSelf": "You resolved a report",
   "notif.section.new": "New",
   "notif.section.earlier": "Earlier",
   "notif.empty.allRead": "No new notifications",
   "notif.markAllRead": "Mark all read",
   "notif.clearRead": "Clear read",
+  "notif.clearRead.confirmTitle": "Clear read notifications?",
+  "notif.clearRead.confirmBody": "All notifications you've already read will be permanently deleted. Unread notifications stay.",
+  "notif.clearRead.confirm": "Delete",
 
   // ── Settings ──
   "settings.title": "Settings",

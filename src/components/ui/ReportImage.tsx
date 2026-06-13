@@ -1,3 +1,4 @@
+"use client";
 /**
  * src/components/ui/ReportImage.tsx
  * Report imagery, rendered whole (never cropped): a blurred cover of the same
@@ -7,6 +8,7 @@
 import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import { clsx } from "clsx";
+import { useT } from "@/components/shared/LanguageProvider";
 
 interface ReportImageProps {
   src?: string | null;
@@ -18,6 +20,7 @@ interface ReportImageProps {
 }
 
 export default function ReportImage({ src, alt, className, emptySize = 38 }: ReportImageProps) {
+  const t = useT();
   return (
     <div className={clsx("relative w-full overflow-hidden bg-gray-100", className)}>
       {src ? (
@@ -40,7 +43,7 @@ export default function ReportImage({ src, alt, className, emptySize = 38 }: Rep
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-1.5 text-gray-300">
           <ImageIcon size={emptySize} />
-          <span className="text-[11px]">Tidak ada foto</span>
+          <span className="text-[11px]">{t("common.noPhoto")}</span>
         </div>
       )}
     </div>
