@@ -122,6 +122,16 @@ export async function createClaimNotification(
   });
 }
 
+/** Notifies the claimant when an admin rejects their claim (report becomes claimable again). */
+export async function notifyClaimRejected(
+  claimUserId: string,
+  reportId: string
+): Promise<void> {
+  await db.notification.create({
+    data: { userId: claimUserId, actionKey: "claimRejected", matchedReportId: reportId },
+  });
+}
+
 /**
  * Notifies the report author when a claim is cancelled.
  */
@@ -210,25 +220,31 @@ export async function notifyAdminsClaimMade(
 }
 
 /**
- * Notifies the claimer when admin marks a FOUND report as resolved.
+ * Status-based: when a report becomes RESOLVED, notify everyone tied to it —
+ * the report author, the claimant (if any), and whoever resolved it (admin or owner).
  */
-export async function notifyClaimerReportResolved(
-  reportId: string
+export async function notifyReportResolved(
+  reportId: string,
+  resolverId?: string
 ): Promise<void> {
   const report = await db.report.findUnique({
     where: { id: reportId },
     include: { claim: true },
   });
-  if (!report || !report.claim) return;
+  if (!report) return;
 
-  // Notify the claimer that the report is resolved
-  await db.notification.create({
-    data: {
-      userId: report.claim.userId,
-      actionKey: "readyPickup",
-      matchedReportId: reportId,
-    },
-  });
+  // Set de-dupes when the resolver is also the author/claimant (e.g. LOST self-resolve).
+  const recipients = new Set<string>([report.authorId]);
+  if (report.claim) recipients.add(report.claim.userId);
+  if (resolverId) recipients.add(resolverId);
+
+  await Promise.all(
+    [...recipients].map((userId) =>
+      db.notification.create({
+        data: { userId, actionKey: "reportResolved", matchedReportId: reportId },
+      })
+    )
+  );
 }
 
 /**
@@ -321,12 +337,6 @@ export async function notifyClaimantCancelled(userId: string, reportId: string):
   });
 }
 
-/** Self-notification: whoever resolved a report (admin or LOST owner) marked it done. */
-export async function notifyResolverDone(userId: string, reportId: string): Promise<void> {
-  await db.notification.create({
-    data: { userId, actionKey: "reportResolvedSelf", matchedReportId: reportId },
-  });
-}
 
 /** Marks a single notification as read and updates the layout badge. */
 export async function markNotificationAsRead(notifId: string): Promise<void> {

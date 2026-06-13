@@ -8,12 +8,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Pencil, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { ToastContainer, useToast } from "@/components/ui/Toast";
 import { useT } from "@/components/shared/LanguageProvider";
 import { deleteReport, resolveReport } from "@/lib/actions/report.actions";
-import { createClaim, cancelClaim } from "@/lib/actions/claim.actions";
+import { createClaim, cancelClaim, rejectClaim } from "@/lib/actions/claim.actions";
 import FileUpload from "@/components/ui/FileUpload";
 
 interface Props {
@@ -49,7 +49,7 @@ async function uploadImage(file: File, uploadFailedMsg: string): Promise<string>
 function StickyBar({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-30 bg-white border-t border-gray-200 shadow-lg">
-      <div className="flex gap-3 px-4 py-3 max-w-3xl mx-auto">
+      <div className="flex flex-wrap gap-2 px-4 py-3 max-w-3xl mx-auto">
         {children}
       </div>
     </div>
@@ -72,12 +72,10 @@ export default function ReportDetailActions({
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showRejectClaimConfirm, setShowRejectClaimConfirm] = useState(false);
   const [takerName, setTakerName] = useState(claimantName ?? "");
-  
-  // Anonymous Taker state
-  const [takerPhone, setTakerPhone] = useState("");
-  const [takerIdCard, setTakerIdCard] = useState("");
-  const [takerNotes, setTakerNotes] = useState("");
+
+  // Anonymous Taker state — only name + photo proof are collected
   const [takerPhotoFile, setTakerPhotoFile] = useState<File | null>(null);
   const [takerPhotoError, setTakerPhotoError] = useState("");
 
@@ -112,14 +110,6 @@ export default function ReportDetailActions({
     }
 
     if (report.type === "FOUND" && !hasClaim) {
-      if (!takerPhone.trim()) {
-        addToast(t("error.takerPhoneRequired"), "error");
-        return;
-      }
-      if (!takerIdCard.trim()) {
-        addToast(t("error.takerIdRequired"), "error");
-        return;
-      }
       if (!takerPhotoFile) {
         setTakerPhotoError(t("error.takerPhotoRequired"));
         addToast(t("error.takerPhotoRequired"), "error");
@@ -138,19 +128,12 @@ export default function ReportDetailActions({
         const result = await resolveReport(
           report.id,
           finalTakerName,
-          report.type === "FOUND" && !hasClaim ? takerPhone : undefined,
-          report.type === "FOUND" && !hasClaim ? takerIdCard : undefined,
           report.type === "FOUND" && !hasClaim ? finalTakerPhotoUrl : undefined,
-          report.type === "FOUND" && !hasClaim ? takerNotes : undefined
         );
 
         if (result.success) {
           addToast(result.message, "success");
           setShowResolveConfirm(false);
-          // Reset states
-          setTakerPhone("");
-          setTakerIdCard("");
-          setTakerNotes("");
           setTakerPhotoFile(null);
           router.refresh();
         } else {
@@ -204,6 +187,15 @@ export default function ReportDetailActions({
     });
   };
 
+  const executeRejectClaim = () => {
+    startTransition(async () => {
+      const result = await rejectClaim(report.id);
+      addToast(result.message, result.success ? "success" : "error");
+      setShowRejectClaimConfirm(false);
+      if (result.success) router.refresh();
+    });
+  };
+
   return (
     <>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
@@ -218,13 +210,22 @@ export default function ReportDetailActions({
               {t("action.resolve")}
             </Button>
           )}
+          {/* Admin can reject a pending claim — report returns to claimable PUBLISHED state */}
+          {report.type === "FOUND" && isAdmin && report.status === "CLAIM_PENDING" && hasClaim && (
+            <Button
+              variant="destructive" size="full" className="rounded-full flex-1"
+              icon={<XCircle size={15} />} disabled={isPending} onClick={() => setShowRejectClaimConfirm(true)}
+            >
+              {t("action.rejectClaim")}
+            </Button>
+          )}
           <Link href={`/report/${report.id}/edit`} className="flex-1">
             <Button variant="outline" size="full" className="rounded-full flex justify-center items-center" icon={<Pencil size={15} />}>
               {t("action.edit")}
             </Button>
           </Link>
-          {/* Verified FOUND reports can no longer be deleted by the owner (LOST is exempt) */}
-          {!(report.type === "FOUND" && report.status === "PUBLISHED" && !isAdmin) && (
+          {/* Verified / claimed FOUND reports can no longer be deleted by the owner (LOST is exempt) */}
+          {!(report.type === "FOUND" && (report.status === "PUBLISHED" || report.status === "CLAIM_PENDING") && !isAdmin) && (
             <Button
               variant="destructive" size="full" className="rounded-full flex-1"
               icon={<Trash2 size={15} />} disabled={isPending} onClick={() => setShowConfirm(true)}
@@ -235,14 +236,15 @@ export default function ReportDetailActions({
         </StickyBar>
       )}
 
-      {/* Other user viewing a published FOUND report — claim / cancel-claim only.
+      {/* Other user viewing a FOUND report — claim (when PUBLISHED) / cancel-claim (when CLAIM_PENDING).
           Facility contact + address stay in the detail meta card. Bar renders only
           when the viewer actually has an action (never an empty bar). */}
-      {report.type === "FOUND" && report.status === "PUBLISHED" && !(isOwner || isAdmin) &&
-        ((!!userId && !hasClaim && userRole !== "ADMIN") || (!!userId && hasClaim && userId === claimUserId)) && (
+      {report.type === "FOUND" && !(isOwner || isAdmin) &&
+        ((!!userId && report.status === "PUBLISHED" && !hasClaim && userRole !== "ADMIN") ||
+         (!!userId && report.status === "CLAIM_PENDING" && hasClaim && userId === claimUserId)) && (
         <StickyBar>
-          {/* Claim Button: logged in, report not claimed, not admin */}
-          {userId && !hasClaim && userRole !== "ADMIN" && (
+          {/* Claim Button: logged in, report claimable (PUBLISHED), not admin */}
+          {userId && report.status === "PUBLISHED" && !hasClaim && userRole !== "ADMIN" && (
             <Button
               variant="primary" size="full" className="rounded-full flex-1"
               icon={<CheckCircle size={15} />}
@@ -252,8 +254,8 @@ export default function ReportDetailActions({
             </Button>
           )}
 
-          {/* Cancel Claim Button: claimant, report claimed, not resolved */}
-          {userId && hasClaim && userId === claimUserId && (
+          {/* Cancel Claim Button: claimant, report in CLAIM_PENDING */}
+          {userId && report.status === "CLAIM_PENDING" && hasClaim && userId === claimUserId && (
             <Button
               variant="destructive" size="full" className="rounded-full flex-1"
               icon={<AlertTriangle size={15} />}
@@ -337,44 +339,11 @@ export default function ReportDetailActions({
                     />
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-900">{t("form.takerPhone.label")}</label>
-                    <input
-                      type="text"
-                      value={takerPhone}
-                      onChange={(e) => setTakerPhone(e.target.value)}
-                      placeholder={t("form.takerPhone.placeholder")}
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-900">{t("form.takerIdCard.label")}</label>
-                    <input
-                      type="text"
-                      value={takerIdCard}
-                      onChange={(e) => setTakerIdCard(e.target.value)}
-                      placeholder={t("form.takerIdCard.placeholder")}
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-
                   <FileUpload
                     label={t("modal.photoProof")}
                     onFileChange={setTakerPhotoFile}
                     error={takerPhotoError}
                   />
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-900">{t("form.takerNotes.label")}</label>
-                    <textarea
-                      value={takerNotes}
-                      onChange={(e) => setTakerNotes(e.target.value)}
-                      placeholder={t("form.takerNotes.placeholder")}
-                      rows={2}
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400"
-                    />
-                  </div>
                 </div>
               )}
             </div>
@@ -383,9 +352,6 @@ export default function ReportDetailActions({
               <button
                 onClick={() => {
                   setShowResolveConfirm(false);
-                  setTakerPhone("");
-                  setTakerIdCard("");
-                  setTakerNotes("");
                   setTakerPhotoFile(null);
                   setTakerPhotoError("");
                 }}
@@ -492,6 +458,40 @@ export default function ReportDetailActions({
                 className="flex-1 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
               >
                 {isPending ? t("action.cancelling") : t("modal.cancelClaim.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Claim Modal (admin) */}
+      {showRejectClaimConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-2">
+                <XCircle size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">{t("modal.rejectClaim.title")}</h3>
+              <p className="text-sm text-gray-500">
+                {t("modal.rejectClaim.body")}
+              </p>
+            </div>
+            <div className="flex border-t border-gray-100">
+              <button
+                onClick={() => setShowRejectClaimConfirm(false)}
+                disabled={isPending}
+                className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                {t("common.cancel")}
+              </button>
+              <div className="w-[1px] bg-gray-100" />
+              <button
+                onClick={executeRejectClaim}
+                disabled={isPending}
+                className="flex-1 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+              >
+                {isPending ? t("common.processing") : t("modal.rejectClaim.confirm")}
               </button>
             </div>
           </div>

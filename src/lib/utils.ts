@@ -62,13 +62,14 @@ export function todayInputValue(): string {
 /** Map ReportStatus to Badge variant */
 export function statusToBadgeVariant(
   status: string
-): "active" | "unverified" | "resolved" | "rejected" {
+): "active" | "unverified" | "resolved" | "rejected" | "claimPending" {
   switch (status) {
-    case "PUBLISHED":  return "active";
-    case "UNVERIFIED": return "unverified";
-    case "RESOLVED":   return "resolved";
-    case "REJECTED":   return "rejected";
-    default:           return "active";
+    case "PUBLISHED":     return "active";
+    case "UNVERIFIED":    return "unverified";
+    case "CLAIM_PENDING": return "claimPending";
+    case "RESOLVED":      return "resolved";
+    case "REJECTED":      return "rejected";
+    default:              return "active";
   }
 }
 

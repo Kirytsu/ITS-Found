@@ -43,6 +43,7 @@ function getNotifMeta(actionKey: string): NotifMeta {
   switch (actionKey) {
     case "claimCancelled":
     case "claimCancelledSelf":
+    case "claimRejected":
     case "reportRejected":
     case "reportDeleted":
       return {
@@ -55,12 +56,13 @@ function getNotifMeta(actionKey: string): NotifMeta {
         labelKey:
           actionKey === "reportDeleted" ? "notif.action.reportDeleted"
           : actionKey === "reportRejected" ? "notif.action.reportRejected"
+          : actionKey === "claimRejected" ? "notif.action.claimRejected"
           : actionKey === "claimCancelledSelf" ? "notif.action.claimCancelledSelf"
           : "notif.action.claimCancelled",
       };
     case "readyPickup":
     case "verified":
-    case "reportResolvedSelf":
+    case "reportResolved":
       return {
         card: "bg-green-50 dark:bg-green-900/50 border-green-200 dark:border-green-800/40",
         readCard,
@@ -70,7 +72,7 @@ function getNotifMeta(actionKey: string): NotifMeta {
         dot: "bg-green-500",
         labelKey:
           actionKey === "verified" ? "notif.action.verified"
-          : actionKey === "reportResolvedSelf" ? "notif.action.reportResolvedSelf"
+          : actionKey === "reportResolved" ? "notif.action.reportResolved"
           : "notif.action.readyPickup",
       };
     case "claimSubmitted":

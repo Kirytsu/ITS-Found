@@ -9,8 +9,8 @@ import { requireSession, getSession } from "../auth";
 import { isValidDate, isFutureDate } from "../utils";
 import { getT } from "../i18n/server";
 import {
-  findMatches, createMatchNotifications, notifyAdminsNewFoundReport, notifyClaimerReportResolved,
-  notifyUserReportCreated, notifyUserReportEdited, notifyUserReportDeleted, notifyResolverDone,
+  findMatches, createMatchNotifications, notifyAdminsNewFoundReport, notifyReportResolved,
+  notifyUserReportCreated, notifyUserReportEdited, notifyUserReportDeleted,
 } from "./notification.actions";
 import type {
   ActionResult,
@@ -96,6 +96,7 @@ export async function createReport(
 
   revalidatePath("/");
   revalidatePath(input.type === "LOST" ? "/lost" : "/found");
+  revalidatePath("/", "layout"); // refresh admin sidebar verify badge
 
   return {
     success: true,
@@ -125,12 +126,13 @@ export async function getPublicReports(
   const session = await getSession();
   const isAdmin = session?.role === "ADMIN";
 
-  // Admin has elevated access: honor any status filter, or show ALL statuses when none.
-  // Regular users only ever see PUBLISHED ("Aktif") or RESOLVED ("Selesai"); anything
-  // else (UNVERIFIED / REJECTED) is clamped to PUBLISHED so it never leaks.
+  // Default view for EVERYONE is PUBLISHED ("Aktif"). Admin may switch to any status;
+  // regular users are limited to the publicly-visible set (else clamped to PUBLISHED).
+  const KNOWN = ["PUBLISHED", "UNVERIFIED", "CLAIM_PENDING", "RESOLVED", "REJECTED"];
+  const PUBLIC_VISIBLE = ["PUBLISHED", "CLAIM_PENDING", "RESOLVED"];
   const statusClause = isAdmin
-    ? (filters.status ? { status: filters.status } : {})
-    : { status: filters.status === "RESOLVED" ? "RESOLVED" : "PUBLISHED" };
+    ? { status: KNOWN.includes(filters.status ?? "") ? filters.status : "PUBLISHED" }
+    : { status: PUBLIC_VISIBLE.includes(filters.status ?? "") ? filters.status : "PUBLISHED" };
 
   const where: Record<string, unknown> = {
     type,
@@ -326,10 +328,7 @@ export async function deleteReport(id: string): Promise<ActionResult> {
 export async function resolveReport(
   id: string,
   takerName?: string,
-  takerPhone?: string,
-  takerIdCard?: string,
-  takerPhotoUrl?: string,
-  takerNotes?: string
+  takerPhotoUrl?: string
 ): Promise<ActionResult> {
   const session = await requireSession();
   const t = await getT();
@@ -353,10 +352,8 @@ export async function resolveReport(
         return { success: false, message: t("action.report.takerNameRequired") };
       }
     } else {
-      // If no claim, we require all offline details
+      // No claim (offline handover): only the taker's name + photo proof are required
       if (!takerName?.trim()) return { success: false, message: t("action.report.takerNameFullRequired") };
-      if (!takerPhone?.trim()) return { success: false, message: t("action.report.takerPhoneRequired") };
-      if (!takerIdCard?.trim()) return { success: false, message: t("action.report.takerIdRequired") };
       if (!takerPhotoUrl?.trim()) return { success: false, message: t("action.report.takerPhotoRequired") };
     }
   } else {
@@ -376,23 +373,21 @@ export async function resolveReport(
       resolvedAt: new Date(),
       resolvedBy: { connect: { id: session.userId } },
       takerName: report.type === "FOUND" ? takerName?.trim() : null,
-      takerPhone: report.type === "FOUND" && !report.claim ? takerPhone?.trim() : null,
-      takerIdCard: report.type === "FOUND" && !report.claim ? takerIdCard?.trim() : null,
       takerPhotoUrl: report.type === "FOUND" && !report.claim ? takerPhotoUrl?.trim() : null,
-      takerNotes: report.type === "FOUND" && !report.claim ? takerNotes?.trim() || null : null,
-    } 
+      // Phone / ID / notes are no longer collected for offline handover
+      takerPhone: null,
+      takerIdCard: null,
+      takerNotes: null,
+    }
   });
 
-  // Notify claimer if FOUND report with claim is resolved
-  if (report.type === "FOUND" && report.claim && takerName) {
-    await notifyClaimerReportResolved(id);
-  }
-  // Self-record for whoever resolved it (admin for FOUND, owner for LOST)
-  await notifyResolverDone(session.userId, id);
+  // Status-based: notify the author, claimant (if any), and the resolver that it's resolved.
+  await notifyReportResolved(id, session.userId);
 
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");
   revalidatePath("/");
+  revalidatePath("/", "layout"); // refresh admin sidebar verify badge (claim resolved)
 
   return { success: true, message: t("action.report.resolveSuccess") };
 }

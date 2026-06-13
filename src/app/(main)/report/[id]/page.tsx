@@ -8,6 +8,7 @@ import { getMatchedReports } from "@/lib/actions/notification.actions";
 import { getSession } from "@/lib/auth";
 import { Suspense } from "react";
 import PageHeader from "@/components/ui/PageHeader";
+import ReportImage from "@/components/ui/ReportImage";
 import NotifCardToast from "@/components/shared/NotifCardToast";
 import ReportMetaCard from "@/components/shared/ReportMetaCard";
 import ReportTimeline from "@/components/shared/ReportTimeline";
@@ -68,9 +69,9 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
             {t("detail.claimInfo.title")}
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
             {/* Details */}
-            <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <span className="text-xs text-gray-400 block">{t("detail.claimInfo.claimantName")}</span>
                 <span className="text-sm font-semibold text-gray-900">{report.claim.user.name}</span>
@@ -86,7 +87,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 </span>
               </div>
               {report.claim.notes && (
-                <div>
+                <div className="sm:col-span-2">
                   <span className="text-xs text-gray-400 block">{t("detail.claimInfo.notes")}</span>
                   <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-100 italic leading-relaxed mt-1">
                     &ldquo;{report.claim.notes}&rdquo;
@@ -95,40 +96,29 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
               )}
             </div>
 
-            {/* Image proof */}
+            {/* Image proof — full width, contained (never cropped), sized like the report photo */}
             <div className="flex flex-col gap-1.5">
               <span className="text-xs text-gray-400">{t("modal.photoProof")}</span>
-              <div className="relative w-full h-44 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={report.claim.photoUrl} alt={t("detail.claimInfo.photoAlt")} className="w-full h-full object-cover" />
-              </div>
+              <ReportImage src={report.claim.photoUrl} alt={t("detail.claimInfo.photoAlt")} className="h-80 sm:h-96 rounded-xl border border-gray-200" emptySize={48} />
             </div>
           </div>
         </div>
       )}
 
-      {/* Admin Offline Taker Info Card */}
-      {isAdmin && report.status === "RESOLVED" && report.type === "FOUND" && !report.claim && report.takerPhone && (
+      {/* Admin Offline Taker Info Card — now only name + photo proof */}
+      {isAdmin && report.status === "RESOLVED" && report.type === "FOUND" && !report.claim && report.takerName && (
         <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm flex flex-col p-5 gap-4">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-brand-500" />
             {t("detail.offlineInfo.title")}
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
             {/* Details */}
-            <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <span className="text-xs text-gray-400 block">{t("form.takerName.label")}</span>
                 <span className="text-sm font-semibold text-gray-900">{report.takerName}</span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-400 block">{t("form.takerPhone.label")}</span>
-                <span className="text-sm font-medium text-gray-900">{report.takerPhone}</span>
-              </div>
-              <div>
-                <span className="text-xs text-gray-400 block">{t("form.takerIdCard.label")}</span>
-                <span className="text-sm font-medium text-gray-900">{report.takerIdCard}</span>
               </div>
               <div>
                 <span className="text-xs text-gray-400 block">{t("detail.offlineInfo.handoverDate")}</span>
@@ -136,24 +126,13 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                   {report.resolvedAt && formatDateTime(report.resolvedAt, locale)} WIB
                 </span>
               </div>
-              {report.takerNotes && (
-                <div>
-                  <span className="text-xs text-gray-400 block">{t("detail.offlineInfo.notes")}</span>
-                  <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-100 italic leading-relaxed mt-1">
-                    &ldquo;{report.takerNotes}&rdquo;
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* Image proof */}
+            {/* Image proof — full width, contained (never cropped) */}
             {report.takerPhotoUrl && (
               <div className="flex flex-col gap-1.5">
                 <span className="text-xs text-gray-400">{t("modal.photoProof")}</span>
-                <div className="relative w-full h-44 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={report.takerPhotoUrl} alt={t("detail.offlineInfo.photoAlt")} className="w-full h-full object-cover" />
-                </div>
+                <ReportImage src={report.takerPhotoUrl} alt={t("detail.offlineInfo.photoAlt")} className="h-80 sm:h-96 rounded-xl border border-gray-200" emptySize={48} />
               </div>
             )}
           </div>

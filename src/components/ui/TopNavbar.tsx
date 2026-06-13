@@ -39,6 +39,7 @@ interface NavItemConfig {
 
 interface TopNavbarProps {
   unreadCount?: number;
+  verifyCount?: number;
   userName?: string;
   isAdmin?: boolean;
 }
@@ -117,9 +118,11 @@ function NavLink({ item, onClose, badge }: { item: NavItemConfig; onClose?: () =
         strokeWidth={isActive ? 2.5 : 2}
       />
       {t(item.labelKey)}
-      {/* Badge for notifications */}
+      {/* Numeric count badge (notifications / admin verification) */}
       {!!badge && badge > 0 && (
-        <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500" />
+        <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
+          {badge > 99 ? "99+" : badge}
+        </span>
       )}
     </Link>
   );
@@ -127,11 +130,12 @@ function NavLink({ item, onClose, badge }: { item: NavItemConfig; onClose?: () =
 
 /* ─────────────── SidebarContent ────────────────────────────────────────────── */
 function SidebarContent({
-  sections, userName, unreadCount, onClose, onLogout,
+  sections, userName, unreadCount, verifyCount, onClose, onLogout,
 }: {
   sections: NavSection[];
   userName?: string;
   unreadCount: number;
+  verifyCount: number;
   onClose?: () => void;
   onLogout: () => void;
 }) {
@@ -164,7 +168,12 @@ function SidebarContent({
               </p>
             )}
             {section.items.map((item) => (
-              <NavLink key={item.href} item={item} onClose={onClose} />
+              <NavLink
+                key={item.href}
+                item={item}
+                onClose={onClose}
+                badge={item.href === "/admin/verification" ? verifyCount : undefined}
+              />
             ))}
           </div>
         ))}
@@ -214,7 +223,7 @@ function SidebarContent({
 }
 
 /* ─────────────── TopNavbar ─────────────────────────────────────────────────── */
-export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNavbarProps) {
+export default function TopNavbar({ unreadCount = 0, verifyCount = 0, userName, isAdmin }: TopNavbarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
@@ -239,7 +248,7 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
     router.refresh();
   };
 
-  const sidebarProps = { sections, userName, unreadCount, onLogout: handleLogout };
+  const sidebarProps = { sections, userName, unreadCount, verifyCount, onLogout: handleLogout };
   const currentDisplayCount = unreadCount;
   const pathname = usePathname();
 

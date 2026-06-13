@@ -8,8 +8,8 @@ import { db } from "../db";
 import { requireSession } from "../auth";
 import { getT } from "../i18n/server";
 import {
-  createClaimNotification, createClaimCancelledNotification, notifyAdminsClaimMade,
-  notifyClaimantClaimed, notifyClaimantCancelled,
+  createClaimNotification, createClaimCancelledNotification,
+  notifyClaimantClaimed, notifyClaimantCancelled, notifyClaimRejected,
 } from "./notification.actions";
 import type { ActionResult } from "../../types";
 
@@ -64,7 +64,7 @@ export async function createClaim(
       return { success: false, message: t("action.claim.alreadyClaimed") };
     }
 
-    // 4. Create Claim record
+    // 4. Create Claim record + move report into the real CLAIM_PENDING status
     const claim = await db.claim.create({
       data: {
         reportId,
@@ -73,12 +73,13 @@ export async function createClaim(
         notes: notes?.trim() || null,
       },
     });
+    await db.report.update({ where: { id: reportId }, data: { status: "CLAIM_PENDING" } });
 
     // 4.5 Send notifications
     // Notify report author about the claim
     await createClaimNotification(reportId);
-    // Notify admins to mark this report as resolved after verification
-    await notifyAdminsClaimMade(reportId);
+    // (Admins no longer get a per-claim notif — pending claims live in the verification page's
+    //  "Klaim Menunggu" queue instead, avoiding duplicate "claim awaiting resolution" spam.)
     // Self-notification: claimant has a record of their claim
     await notifyClaimantClaimed(session.userId, reportId);
 
@@ -86,6 +87,7 @@ export async function createClaim(
     revalidatePath(`/report/${reportId}`);
     revalidatePath("/found");
     revalidatePath("/");
+    revalidatePath("/", "layout"); // refresh admin sidebar verify badge
 
     return {
       success: true,
@@ -142,10 +144,13 @@ export async function cancelClaim(reportId: string): Promise<ActionResult> {
       return { success: false, message: t("action.claim.cannotCancelResolved") };
     }
 
-    // 4. Delete Claim
+    // 4. Delete Claim + return report to claimable PUBLISHED status
     await db.claim.delete({
       where: { id: claim.id },
     });
+    if (report.status === "CLAIM_PENDING") {
+      await db.report.update({ where: { id: reportId }, data: { status: "PUBLISHED" } });
+    }
 
     // 4.5 Send notification to report author + self-record for the claimant
     await createClaimCancelledNotification(reportId);
@@ -155,6 +160,7 @@ export async function cancelClaim(reportId: string): Promise<ActionResult> {
     revalidatePath(`/report/${reportId}`);
     revalidatePath("/found");
     revalidatePath("/");
+    revalidatePath("/", "layout"); // refresh admin sidebar verify badge
 
     return {
       success: true,
@@ -162,6 +168,53 @@ export async function cancelClaim(reportId: string): Promise<ActionResult> {
     };
   } catch (error) {
     console.error("[Cancel Claim Error]", error);
+    return { success: false, message: t("action.claim.cancelError") };
+  }
+}
+
+/**
+ * Admin rejects a pending claim. The claim is removed and the report stays PUBLISHED,
+ * so it becomes claimable again (any user, including the rejected one, may re-claim).
+ */
+export async function rejectClaim(reportId: string): Promise<ActionResult> {
+  const session = await requireSession();
+  const t = await getT();
+
+  if (session.role !== "ADMIN") {
+    return { success: false, message: t("action.claim.adminOnlyReject") };
+  }
+
+  try {
+    const report = await db.report.findUnique({
+      where: { id: reportId },
+      include: { claim: true },
+    });
+
+    if (!report) return { success: false, message: t("action.claim.notFound") };
+    const claim = report.claim;
+    if (!claim) return { success: false, message: t("action.claim.notFoundForCancel") };
+    if (report.status === "RESOLVED") {
+      return { success: false, message: t("action.claim.cannotCancelResolved") };
+    }
+
+    // Remove the claim — report returns to its claimable PUBLISHED state.
+    await db.claim.delete({ where: { id: claim.id } });
+    if (report.status === "CLAIM_PENDING") {
+      await db.report.update({ where: { id: reportId }, data: { status: "PUBLISHED" } });
+    }
+
+    // Notify the claimant their claim was rejected
+    await notifyClaimRejected(claim.userId, reportId);
+
+    revalidatePath(`/report/${reportId}`);
+    revalidatePath("/admin/verification");
+    revalidatePath("/found");
+    revalidatePath("/");
+    revalidatePath("/", "layout"); // refresh admin sidebar verify badge
+
+    return { success: true, message: t("action.claim.rejectSuccess") };
+  } catch (error) {
+    console.error("[Reject Claim Error]", error);
     return { success: false, message: t("action.claim.cancelError") };
   }
 }

@@ -85,7 +85,8 @@ export default async function LostPage({ searchParams }: { searchParams: Promise
       <Suspense fallback={<div className="h-36 rounded-xl bg-gray-100 animate-pulse" />}>
         <FilterBar
           areas={areas} categories={categories}
-          showStatus statusMode={isAdmin ? "full" : "public"} showDateRange
+          showStatus statusMode={isAdmin ? "adminList" : "public"} showDateRange
+          claimable={false}
         />
       </Suspense>
       <Suspense fallback={<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{Array.from({length:4}).map((_,i) => <div key={i} className="h-64 rounded-2xl bg-gray-100 animate-pulse" />)}</div>}>

@@ -32,11 +32,7 @@ export default function ReportCard({ report, showTypeBadge = false, locale = DEF
           />
           <div className="absolute right-2.5 top-2.5 flex items-center gap-1.5">
             {showTypeBadge && <Badge variant={typeToBadgeVariant(report.type)} locale={locale} />}
-            {report.status === "PUBLISHED" && report.claim ? (
-              <Badge variant="claimed" locale={locale} />
-            ) : (
-              <Badge variant={statusToBadgeVariant(report.status)} locale={locale} />
-            )}
+            <Badge variant={statusToBadgeVariant(report.status)} locale={locale} />
           </div>
         </div>
 

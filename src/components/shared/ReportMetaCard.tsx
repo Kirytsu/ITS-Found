@@ -22,11 +22,9 @@ interface ReportMetaCardProps {
 
 export default function ReportMetaCard({ report, locale = DEFAULT_LOCALE }: ReportMetaCardProps) {
   const t = (key: string) => translate(locale, key);
-  const isClaimed = report.status === "PUBLISHED" && !!report.claim;
-  const badgeVariant = (isClaimed ? "claimed" : statusToBadgeVariant(report.status)) as "claimed" | "active" | "unverified" | "resolved" | "rejected";
 
   const rows: MetaRow[] = [
-    { label: t("meta.status"),       value: <Badge variant={badgeVariant} locale={locale} /> },
+    { label: t("meta.status"),       value: <Badge variant={statusToBadgeVariant(report.status)} locale={locale} /> },
     {
       label: t("meta.caseType"),
       value: (

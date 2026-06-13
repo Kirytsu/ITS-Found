@@ -20,10 +20,11 @@ enum ReportType {
 }
 
 enum ReportStatus {
-  UNVERIFIED  // FOUND only: waiting for admin physical verification
-  PUBLISHED   // Visible to public (LOST defaults here; FOUND after verification)
-  RESOLVED    // Item returned / claimed
-  REJECTED    // Rejected by admin (spam / invalid)
+  UNVERIFIED     // FOUND only: waiting for admin physical verification
+  PUBLISHED      // Visible to public (LOST defaults here; FOUND after verification)
+  CLAIM_PENDING  // FOUND only: a user has claimed it, awaiting admin to resolve the handover
+  RESOLVED       // Item returned / claimed
+  REJECTED       // Rejected by admin (spam / invalid)
 }
 
 // ─── Master Data (seeded) ─────────────────────────────────────────────────────

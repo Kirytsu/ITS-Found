@@ -19,13 +19,16 @@ interface FilterBarProps {
   categories: SelectOption[];
   showStatus?: boolean;
   showDateRange?: boolean;
-  /** "public" → Aktif/Selesai (default Aktif); "full" → all 4 + all-option; "verify" → Menunggu/Terverifikasi. */
-  statusMode?: "public" | "full" | "verify";
+  /** "public" → Aktif/Selesai (default Aktif); "full" → all 4 + all-option; "verify" → Menunggu/Terverifikasi;
+   *  "adminList" → all 4, no all-option, default Aktif (admin browsing /found + /lost). */
+  statusMode?: "public" | "full" | "verify" | "adminList";
   /** Overrides the status shown when no ?status param is present (e.g. admin defaults to UNVERIFIED). */
   initialStatus?: string;
+  /** Whether reports here can be claimed (FOUND). When false (LOST), CLAIM_PENDING is hidden. */
+  claimable?: boolean;
 }
 
-export default function FilterBar({ areas, categories, showStatus = false, showDateRange = true, statusMode = "full", initialStatus }: FilterBarProps) {
+export default function FilterBar({ areas, categories, showStatus = false, showDateRange = true, statusMode = "full", initialStatus, claimable = true }: FilterBarProps) {
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
@@ -34,28 +37,35 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
 
   const isPublicStatus = statusMode === "public";
   const isVerifyStatus = statusMode === "verify";
-  // public + verify never have an "all" option — always a concrete status selected
-  const noAllOption = isPublicStatus || isVerifyStatus;
+  const isAdminList    = statusMode === "adminList";
+  // Only "full" exposes an "all" option; every other mode forces a concrete status.
+  const noAllOption = isPublicStatus || isVerifyStatus || isAdminList;
+
+  // CLAIM_PENDING only applies to claimable (FOUND) reports — drop it on LOST.
+  const FOUR_STATUS: SelectOption[] = [
+    { value: "PUBLISHED",     label: t("status.active") },
+    { value: "UNVERIFIED",    label: t("status.unverified") },
+    ...(claimable ? [{ value: "CLAIM_PENDING", label: t("status.claimPending") }] : []),
+    { value: "RESOLVED",      label: t("status.resolved") },
+    { value: "REJECTED",      label: t("status.rejected") },
+  ];
 
   const STATUS_OPTIONS: SelectOption[] = isPublicStatus
     ? [
-        { value: "PUBLISHED", label: t("status.active") },
-        { value: "RESOLVED",  label: t("status.resolved") },
+        { value: "PUBLISHED",     label: t("status.active") },
+        ...(claimable ? [{ value: "CLAIM_PENDING", label: t("status.claimPending") }] : []),
+        { value: "RESOLVED",      label: t("status.resolved") },
       ]
     : isVerifyStatus
     ? [
         { value: "UNVERIFIED", label: t("status.unverified") },
         { value: "PUBLISHED",  label: t("status.verified") },
       ]
-    : [
-        { value: "PUBLISHED",  label: t("status.active") },
-        { value: "UNVERIFIED", label: t("status.unverified") },
-        { value: "RESOLVED",   label: t("status.resolved") },
-        { value: "REJECTED",   label: t("status.rejected") },
-      ];
+    : FOUR_STATUS;
 
-  // Default when no ?status param: explicit override > public Aktif > verify Menunggu > full all.
-  const defaultStatus = initialStatus ?? (isPublicStatus ? "PUBLISHED" : isVerifyStatus ? "UNVERIFIED" : "");
+  // Default when no ?status param: explicit override > public/adminList Aktif > verify Menunggu > full all.
+  const defaultStatus = initialStatus
+    ?? (isPublicStatus || isAdminList ? "PUBLISHED" : isVerifyStatus ? "UNVERIFIED" : "");
 
   const [area, setArea]         = useState(searchParams.get("areaId") ?? "");
   const [category, setCategory] = useState(searchParams.get("categoryId") ?? "");
@@ -75,7 +85,16 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
 
   return (
     <div className="flex flex-col gap-3 bg-white rounded-xl border border-gray-200 p-4">
-      {/* Row 1: Area + Category — always 2 cols */}
+      {/* Search — full width, sits on top of all filters */}
+      <SearchInput
+        placeholder={t("filter.search")}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        onBlur={() => push({ search })}
+        onKeyDown={(e) => e.key === "Enter" && push({ search })}
+      />
+
+      {/* Row: Area + Category — always 2 cols */}
       <div className="grid grid-cols-2 gap-3">
         <Combobox
           options={areas} value={area}
@@ -97,15 +116,6 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
           placeholder={noAllOption ? undefined : t("filter.allStatus")}
         />
       )}
-
-      {/* Search — full width */}
-      <SearchInput
-        placeholder={t("filter.search")}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onBlur={() => push({ search })}
-        onKeyDown={(e) => e.key === "Enter" && push({ search })}
-      />
 
       {/* Date range — 2 cols */}
       {showDateRange && (

@@ -35,6 +35,18 @@ export async function getUnverifiedFoundReports(): Promise<ReportWithRelations[]
   return reports as unknown as ReportWithRelations[];
 }
 
+/** Returns FOUND reports in the CLAIM_PENDING status — a user has claimed them and
+ *  they await the admin to verify the handover and mark the report done. */
+export async function getClaimPendingReports(): Promise<ReportWithRelations[]> {
+  await requireAdmin();
+  const reports = await db.report.findMany({
+    where: { type: "FOUND", status: "CLAIM_PENDING" },
+    include: REPORT_INCLUDE,
+    orderBy: { createdAt: "asc" },
+  });
+  return reports as unknown as ReportWithRelations[];
+}
+
 /** Returns ALL reports for admin overview, with full filtering + pagination. */
 export async function getAllReports(filters?: {
   status?: string;
@@ -112,6 +124,7 @@ export async function verifyReport(id: string): Promise<ActionResult> {
   revalidatePath("/found");
   revalidatePath("/");
   revalidatePath(`/report/${id}`);
+  revalidatePath("/", "layout"); // refresh admin sidebar verify badge
 
   return { success: true, message: t("action.admin.verifySuccess") };
 }
@@ -136,6 +149,7 @@ export async function rejectReport(id: string): Promise<ActionResult> {
   revalidatePath("/admin/verification");
   revalidatePath(`/report/${id}`);
   revalidatePath("/");
+  revalidatePath("/", "layout"); // refresh admin sidebar verify badge
 
   return { success: true, message: t("action.admin.rejectSuccess") };
 }

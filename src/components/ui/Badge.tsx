@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 import { translate } from "@/lib/i18n/dictionaries";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 
-type BadgeVariant = "active" | "unverified" | "resolved" | "rejected" | "lost" | "found" | "claimed";
+type BadgeVariant = "active" | "unverified" | "resolved" | "rejected" | "lost" | "found" | "claimPending";
 
 interface BadgeProps {
   variant: BadgeVariant;
@@ -22,7 +22,7 @@ const variantConfig: Record<BadgeVariant, { classes: string; key: string }> = {
   rejected:   { classes: "bg-red-500 text-[#ffffff]",    key: "status.rejected" },
   lost:       { classes: "bg-orange-600 text-[#ffffff]", key: "type.lost" },
   found:      { classes: "bg-blue-400 text-[#ffffff]",   key: "type.found" },
-  claimed:    { classes: "bg-amber-500 text-[#ffffff]",  key: "status.claimed" },
+  claimPending: { classes: "bg-amber-500 text-[#ffffff]", key: "status.claimPending" },
 };
 
 export default function Badge({ variant, label, className, locale = DEFAULT_LOCALE }: BadgeProps) {

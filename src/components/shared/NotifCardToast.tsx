@@ -27,6 +27,7 @@ function getMeta(actionKey: string): Meta {
   switch (actionKey) {
     case "claimCancelled":
     case "claimCancelledSelf":
+    case "claimRejected":
     case "reportRejected":
     case "reportDeleted":
       return {
@@ -37,12 +38,13 @@ function getMeta(actionKey: string): Meta {
         labelKey:
           actionKey === "reportDeleted" ? "notif.action.reportDeleted"
           : actionKey === "reportRejected" ? "notif.action.reportRejected"
+          : actionKey === "claimRejected" ? "notif.action.claimRejected"
           : actionKey === "claimCancelledSelf" ? "notif.action.claimCancelledSelf"
           : "notif.action.claimCancelled",
       };
     case "readyPickup":
     case "verified":
-    case "reportResolvedSelf":
+    case "reportResolved":
       return {
         accent: "border-l-green-500",
         icon: CheckCircle2,
@@ -50,7 +52,7 @@ function getMeta(actionKey: string): Meta {
         iconColor: "text-green-600 dark:text-green-400",
         labelKey:
           actionKey === "verified" ? "notif.action.verified"
-          : actionKey === "reportResolvedSelf" ? "notif.action.reportResolvedSelf"
+          : actionKey === "reportResolved" ? "notif.action.reportResolved"
           : "notif.action.readyPickup",
       };
     case "claimSubmitted":

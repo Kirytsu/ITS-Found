@@ -44,5 +44,5 @@ export const metadata: Metadata = {
   title: "ITS Found",
   description:
     "Sistem pelaporan dan pencarian barang hilang & temuan di lingkungan kampus Institut Teknologi Sepuluh Nopember.",
-  icons: { icon: "/favicon.ico" },
+  // Icon resolved automatically from src/app/icon.svg (branded PackageSearch glyph).
 };

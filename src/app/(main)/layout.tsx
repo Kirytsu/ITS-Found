@@ -21,10 +21,19 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   const session = await getSession();
 
   let unreadCount = 0;
+  let verifyCount = 0;
   if (session) {
     unreadCount = await db.notification.count({
       where: { userId: session.userId, isRead: false },
     });
+    // Admin sidebar badge: items needing attention = unverified found + pending claims
+    if (session.role === "ADMIN") {
+      const [unverified, claimPending] = await Promise.all([
+        db.report.count({ where: { type: "FOUND", status: "UNVERIFIED" } }),
+        db.report.count({ where: { type: "FOUND", status: "CLAIM_PENDING" } }),
+      ]);
+      verifyCount = unverified + claimPending;
+    }
   }
 
   return (
@@ -33,6 +42,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <Suspense fallback={<div className="h-14 bg-white" />}>
         <TopNavbar
           unreadCount={unreadCount}
+          verifyCount={verifyCount}
           userName={session?.name}
           isAdmin={session?.role === "ADMIN"}
         />
