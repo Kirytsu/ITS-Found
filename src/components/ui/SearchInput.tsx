@@ -23,7 +23,7 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           className={clsx(
             "w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 py-2.5 text-sm text-gray-900",
             "placeholder:text-gray-400",
-            "focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent",
+            "focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent",
             className
           )}
           {...props}

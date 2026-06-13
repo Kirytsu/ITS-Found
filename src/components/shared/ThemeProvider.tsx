@@ -18,11 +18,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setTheme = (t: Theme) => {
-    console.log("setTheme called:", t);
     setThemeState(t);
     localStorage.setItem("theme", t);
     document.documentElement.classList.toggle("dark", t === "dark");
-    console.log("html classes:", document.documentElement.className);
   };
 
   return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;

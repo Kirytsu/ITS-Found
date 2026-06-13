@@ -2,8 +2,8 @@
  * src/components/shared/VerificationCard.tsx
  * Card for admin verification queue — extracted from admin/verification/page.tsx
  */
-import Image from "next/image";
-import { ImageIcon, CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
+import ReportImage from "@/components/ui/ReportImage";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { formatDateShort } from "@/lib/utils";
@@ -21,13 +21,8 @@ export default function VerificationCard({
 }: VerificationCardProps) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-      {/* Image */}
-      <div className="relative w-full h-44 bg-gray-100 flex items-center justify-center">
-        {report.imageUrl
-          ? <Image src={report.imageUrl} alt={report.title} fill className="object-cover" />
-          : <ImageIcon size={36} className="text-gray-300" />
-        }
-      </div>
+      {/* Image — full photo, never cropped */}
+      <ReportImage src={report.imageUrl} alt={report.title} className="h-44" />
 
       <div className="px-4 pt-3 pb-4 flex flex-col gap-2">
         {/* Header */}
@@ -36,14 +31,14 @@ export default function VerificationCard({
           <Badge variant="unverified" />
         </div>
 
-        <h3 className="text-base font-bold text-gray-900 line-clamp-1">{report.title}</h3>
+        <h3 className="text-base font-bold text-gray-900 line-clamp-2 break-words">{report.title}</h3>
 
         <div className="flex flex-col gap-0.5 text-xs text-gray-500">
           <span>Kategori: <strong>{report.category.name}</strong></span>
           <span>Pelapor: <strong>{report.author.name}</strong></span>
           <span>Dilaporkan: {formatDateShort(report.createdAt)}</span>
           {report.facility && (
-            <span className="text-teal-600 font-semibold mt-0.5">
+            <span className="text-brand-600 font-semibold mt-0.5">
               Dititipkan di: {report.facility.name}
             </span>
           )}

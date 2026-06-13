@@ -9,9 +9,11 @@ import { Eye, EyeOff } from "lucide-react";
 import { registerUser } from "@/lib/actions/auth.actions";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { useT } from "@/components/shared/LanguageProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   const [showPwd, setShowPwd] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,12 +43,12 @@ export default function RegisterPage() {
             {globalError}
           </div>
         )}
-        <Input label="Nama Lengkap" name="name" type="text" placeholder="Nama Anda"
+        <Input label={t("auth.register.name")} name="name" type="text" placeholder={t("auth.register.name.ph")}
           required autoComplete="name" error={errors.name} />
-        <Input label="Email" name="email" type="email" placeholder="email@its.ac.id"
+        <Input label={t("auth.email")} name="email" type="email" placeholder="email@its.ac.id"
           required autoComplete="email" error={errors.email} />
-        <Input label="Password" name="password" type={showPwd ? "text" : "password"}
-          placeholder="Minimal 6 karakter" required autoComplete="new-password"
+        <Input label={t("auth.password")} name="password" type={showPwd ? "text" : "password"}
+          placeholder={t("auth.register.password.ph")} required autoComplete="new-password"
           error={errors.password}
           icon={
             <button type="button" onClick={() => setShowPwd((v) => !v)}
@@ -56,12 +58,12 @@ export default function RegisterPage() {
           }
         />
         <Button type="submit" variant="primary" size="full" loading={isPending} className="mt-2 rounded-full py-3">
-          Daftar
+          {t("auth.register.submit")}
         </Button>
       </form>
       <p className="text-center text-sm text-gray-500">
-        Sudah punya akun?{" "}
-        <Link href="/login" className="font-semibold text-teal-600 hover:text-teal-700">Masuk</Link>
+        {t("auth.register.hasAccount")}{" "}
+        <Link href="/login" className="font-semibold text-brand-600 hover:text-brand-700">{t("auth.register.login")}</Link>
       </p>
     </div>
   );

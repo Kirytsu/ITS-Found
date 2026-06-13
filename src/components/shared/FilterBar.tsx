@@ -11,6 +11,7 @@ import Combobox from "@/components/ui/Combobox";
 import Select from "@/components/ui/Select";
 import SearchInput from "@/components/ui/SearchInput";
 import DatePicker from "@/components/ui/DatePicker";
+import { useT } from "@/components/shared/LanguageProvider";
 import type { SelectOption } from "@/types";
 
 interface FilterBarProps {
@@ -20,18 +21,19 @@ interface FilterBarProps {
   showDateRange?: boolean;
 }
 
-const STATUS_OPTIONS: SelectOption[] = [
-  { value: "PUBLISHED",  label: "Aktif" },
-  { value: "UNVERIFIED", label: "Menunggu Verifikasi" },
-  { value: "RESOLVED",   label: "Selesai" },
-  { value: "REJECTED",   label: "Ditolak" },
-];
-
 export default function FilterBar({ areas, categories, showStatus = false, showDateRange = true }: FilterBarProps) {
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
+  const t            = useT();
   const [, startTransition] = useTransition();
+
+  const STATUS_OPTIONS: SelectOption[] = [
+    { value: "PUBLISHED",  label: t("status.active") },
+    { value: "UNVERIFIED", label: t("status.unverified") },
+    { value: "RESOLVED",   label: t("status.resolved") },
+    { value: "REJECTED",   label: t("status.rejected") },
+  ];
 
   const [area, setArea]         = useState(searchParams.get("areaId") ?? "");
   const [category, setCategory] = useState(searchParams.get("categoryId") ?? "");
@@ -56,12 +58,12 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
         <Combobox
           options={areas} value={area}
           onChange={(v) => { setArea(v); push({ areaId: v }); }}
-          placeholder="Semua Area"
+          placeholder={t("filter.allAreas")}
         />
         <Select
           options={categories} value={category}
           onChange={(e) => { setCategory(e.target.value); push({ categoryId: e.target.value }); }}
-          placeholder="Semua Jenis"
+          placeholder={t("filter.allTypes")}
         />
       </div>
 
@@ -70,13 +72,13 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
         <Select
           options={STATUS_OPTIONS} value={status}
           onChange={(e) => { setStatus(e.target.value); push({ status: e.target.value }); }}
-          placeholder="Semua Status"
+          placeholder={t("filter.allStatus")}
         />
       )}
 
       {/* Search — full width */}
       <SearchInput
-        placeholder="Cari laporan..."
+        placeholder={t("filter.search")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         onBlur={() => push({ search })}
@@ -85,15 +87,42 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
 
       {/* Date range — 2 cols */}
       {showDateRange && (
-        <div className="grid grid-cols-2 gap-3">
-          <DatePicker
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); push({ dateFrom: e.target.value }); }}
-          />
-          <DatePicker
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); push({ dateTo: e.target.value }); }}
-          />
+        <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-2 gap-3">
+            <DatePicker
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDateFrom(v);
+                // Keep range valid: pull dateTo up if it would now be before dateFrom.
+                if (dateTo && v && v > dateTo) {
+                  setDateTo(v);
+                  push({ dateFrom: v, dateTo: v });
+                } else {
+                  push({ dateFrom: v });
+                }
+              }}
+            />
+            <DatePicker
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDateTo(v);
+                // Keep range valid: push dateFrom down if it would now be after dateTo.
+                if (dateFrom && v && v < dateFrom) {
+                  setDateFrom(v);
+                  push({ dateFrom: v, dateTo: v });
+                } else {
+                  push({ dateTo: v });
+                }
+              }}
+            />
+          </div>
+          {dateFrom && dateTo && dateFrom > dateTo && (
+            <p className="text-xs text-red-500">{t("filter.dateRange.invalid")}</p>
+          )}
         </div>
       )}
     </div>

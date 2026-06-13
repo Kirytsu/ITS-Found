@@ -2,11 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    // Allow images from local uploads folder (served via public/uploads/)
+    // Locally-stored uploads (public/uploads/) gain nothing from the optimizer and the
+    // optimizer pipeline was breaking every report image — serve them as-is, reliably.
+    unoptimized: true,
     localPatterns: [
       { pathname: "/uploads/**" },
     ],
-    // Also allow remote patterns if needed in future
     remotePatterns: [],
   },
 };

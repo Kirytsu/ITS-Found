@@ -11,11 +11,15 @@ import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
 import { getMyReports } from "@/lib/actions/report.actions";
 import { getSession } from "@/lib/auth";
 import DeleteSuccessToast from "@/components/shared/DeleteSuccessToast";
+import { getLocale } from "@/lib/i18n/server";
+import { getTranslator } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/config";
 import type { ReportFilters, ReportStatus } from "@/types";
 
 interface SP { areaId?: string; categoryId?: string; status?: string; search?: string; page?: string; }
 
-async function MyReportList({ sp }: { sp: SP }) {
+async function MyReportList({ sp, locale }: { sp: SP; locale: Locale }) {
+  const t = getTranslator(locale);
   const filters: ReportFilters = {
     areaId: sp.areaId, categoryId: sp.categoryId, search: sp.search,
     status: sp.status as ReportStatus | undefined,
@@ -27,16 +31,16 @@ async function MyReportList({ sp }: { sp: SP }) {
   if (reports.length === 0) {
     return (
       <div className="flex flex-col items-center py-16 gap-4">
-        <p className="text-sm text-gray-400 text-center">Belum ada laporan yang ditemukan.</p>
+        <p className="text-sm text-gray-400 text-center">{t("myReports.empty")}</p>
         <div className="flex flex-wrap gap-2 justify-center">
           <Link href="/report/new?type=lost">
-            <button className="px-4 py-2 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors">
-              + Lapor Kehilangan
+            <button className="px-4 py-2 rounded-full bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
+              + {t("nav.reportLost")}
             </button>
           </Link>
           <Link href="/report/new?type=found">
             <button className="px-4 py-2 rounded-full border border-gray-300 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
-              + Lapor Penemuan
+              + {t("nav.reportFound")}
             </button>
           </Link>
         </div>
@@ -47,12 +51,12 @@ async function MyReportList({ sp }: { sp: SP }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {reports.map((r) => <ReportCard key={r.id} report={r} showTypeBadge />)}
+        {reports.map((r) => <ReportCard key={r.id} report={r} showTypeBadge locale={locale} />)}
       </div>
       {reports.length === 12 && (
         <Link href={`/my-reports?${new URLSearchParams({ ...sp, page: String(nextPage) })}`}>
-          <button className="w-full py-3 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors">
-            Tampilkan lebih
+          <button className="w-full py-3 rounded-full bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
+            {t("common.showMore")}
           </button>
         </Link>
       )}
@@ -65,6 +69,8 @@ export default async function MyReportsPage({ searchParams }: { searchParams: Pr
   if (!session) redirect("/login?from=/my-reports");
 
   const sp = await searchParams;
+  const locale = await getLocale();
+  const t = getTranslator(locale);
   const [areas, categories] = await Promise.all([getAllAreas(), getAllCategories()]);
 
   return (
@@ -74,7 +80,7 @@ export default async function MyReportsPage({ searchParams }: { searchParams: Pr
       </Suspense>
 
       <div className="flex items-center justify-between gap-4">
-        <PageHeader title="Laporan Saya" />
+        <PageHeader title={t("page.myReports.title")} />
       </div>
 
       <Suspense fallback={<div className="h-44 rounded-xl bg-gray-100 animate-pulse" />}>
@@ -82,7 +88,7 @@ export default async function MyReportsPage({ searchParams }: { searchParams: Pr
       </Suspense>
 
       <Suspense fallback={<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{Array.from({length:4}).map((_,i) => <div key={i} className="h-64 rounded-2xl bg-gray-100 animate-pulse" />)}</div>}>
-        <MyReportList sp={sp} />
+        <MyReportList sp={sp} locale={locale} />
       </Suspense>
     </div>
   );

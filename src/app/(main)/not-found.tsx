@@ -31,7 +31,7 @@ export default function NotFoundPage() {
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto max-w-sm">
         <Link href="/" className="flex-1">
-          <button className="w-full px-6 py-3 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+          <button className="w-full px-6 py-3 rounded-full bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors flex items-center justify-center gap-2">
             <Home size={18} />
             Kembali ke Beranda
           </button>
@@ -50,19 +50,19 @@ export default function NotFoundPage() {
         <p className="text-xs text-gray-400 uppercase tracking-wider">Navigasi Cepat</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/lost">
-            <span className="text-sm font-medium text-teal-600 hover:text-teal-700">
+            <span className="text-sm font-medium text-brand-600 hover:text-brand-700">
               Cari Laporan Kehilangan
             </span>
           </Link>
           <span className="hidden sm:inline text-gray-300">•</span>
           <Link href="/found">
-            <span className="text-sm font-medium text-teal-600 hover:text-teal-700">
+            <span className="text-sm font-medium text-brand-600 hover:text-brand-700">
               Cari Laporan Penemuan
             </span>
           </Link>
           <span className="hidden sm:inline text-gray-300">•</span>
           <Link href="/my-reports">
-            <span className="text-sm font-medium text-teal-600 hover:text-teal-700">
+            <span className="text-sm font-medium text-brand-600 hover:text-brand-700">
               Laporan Saya
             </span>
           </Link>

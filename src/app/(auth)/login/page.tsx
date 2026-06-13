@@ -10,10 +10,12 @@ import { Eye, EyeOff } from "lucide-react";
 import { loginUser } from "@/lib/actions/auth.actions";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { useT } from "@/components/shared/LanguageProvider";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   const [showPwd, setShowPwd] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -44,10 +46,10 @@ function LoginForm() {
             {globalError}
           </div>
         )}
-        <Input label="Email" name="email" type="email" placeholder="email@its.ac.id"
+        <Input label={t("auth.email")} name="email" type="email" placeholder="email@its.ac.id"
           required autoComplete="email" error={errors.email} />
-        <Input label="Password" name="password" type={showPwd ? "text" : "password"}
-          placeholder="Masukkan password" required autoComplete="current-password"
+        <Input label={t("auth.password")} name="password" type={showPwd ? "text" : "password"}
+          placeholder={t("auth.password.ph")} required autoComplete="current-password"
           error={errors.password}
           icon={
             <button type="button" onClick={() => setShowPwd((v) => !v)}
@@ -57,12 +59,12 @@ function LoginForm() {
           }
         />
         <Button type="submit" variant="primary" size="full" loading={isPending} className="mt-2 rounded-full py-3">
-          Masuk
+          {t("auth.login.submit")}
         </Button>
       </form>
       <p className="text-center text-sm text-gray-500">
-        Belum punya akun?{" "}
-        <Link href="/register" className="font-semibold text-teal-600 hover:text-teal-700">Daftar</Link>
+        {t("auth.login.noAccount")}{" "}
+        <Link href="/register" className="font-semibold text-brand-600 hover:text-brand-700">{t("auth.login.register")}</Link>
       </p>
     </div>
   );

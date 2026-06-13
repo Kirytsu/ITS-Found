@@ -11,6 +11,8 @@ import ReportMetaCard from "@/components/shared/ReportMetaCard";
 import ReportTimeline from "@/components/shared/ReportTimeline";
 import MatchedReportsSection from "@/components/shared/MatchedReportsSection";
 import ReportDetailActions from "@/components/shared/ReportDetailActions";
+import { getLocale } from "@/lib/i18n/server";
+import { getTranslator } from "@/lib/i18n/dictionaries";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,26 +33,28 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
 
   const isOwner = session?.userId === report.authorId;
   const isAdmin = session?.role === "ADMIN";
+  const locale = await getLocale();
+  const t = getTranslator(locale);
 
   return (
     <div className="flex flex-col gap-4 pb-28">
-      <PageHeader title="Detail Laporan" />
+      <PageHeader title={t("detail.pageTitle")} />
       
       {/* Claimant Banner */}
       {report.claim && session?.userId === report.claim.userId && report.status !== "RESOLVED" && (
-        <div className="rounded-2xl bg-teal-50 border border-teal-200 p-4 flex flex-col gap-1.5 shadow-sm animate-in fade-in duration-200">
-          <h4 className="text-sm font-bold text-teal-800 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+        <div className="rounded-2xl bg-brand-50 border border-brand-200 p-4 flex flex-col gap-1.5 shadow-sm animate-in fade-in duration-200">
+          <h4 className="text-sm font-bold text-brand-800 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
             Klaim Anda Telah Diajukan
           </h4>
-          <p className="text-xs text-teal-700 leading-relaxed">
+          <p className="text-xs text-brand-700 leading-relaxed">
             Anda telah mengajukan klaim untuk barang ini. Silakan kunjungi fasilitas penitipan terkait (<strong>{report.facility?.name || "Fasilitas Penitipan"}</strong>) untuk melakukan verifikasi kepemilikan fisik dan mengambil barang tersebut.
           </p>
         </div>
       )}
 
       <MatchedReportsSection matches={matches} />
-      <ReportMetaCard report={report} />
+      <ReportMetaCard report={report} locale={locale} />
 
       {/* Admin Claim Info Card */}
       {isAdmin && report.claim && (
@@ -109,7 +113,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
       {isAdmin && report.status === "RESOLVED" && report.type === "FOUND" && !report.claim && report.takerPhone && (
         <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm flex flex-col p-5 gap-4">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+            <span className="w-2.5 h-2.5 rounded-full bg-brand-500" />
             Detail Serah Terima (Offline)
           </h3>
           

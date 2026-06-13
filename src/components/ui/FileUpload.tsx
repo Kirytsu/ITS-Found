@@ -68,10 +68,10 @@ export default function FileUpload({
       {helperText && <p className="text-xs text-gray-400">{helperText}</p>}
 
       {preview ? (
-        /* ── Preview ── */
+        /* ── Preview — full image, not cropped ── */
         <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt="Preview" className="w-full h-52 object-cover" />
+          <img src={preview} alt="Preview" className="w-full max-h-96 object-contain" />
           <button
             type="button"
             onClick={handleClear}
@@ -96,7 +96,7 @@ export default function FileUpload({
             "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-colors",
             disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
             isDragging
-              ? "border-teal-400 bg-teal-50"
+              ? "border-brand-400 bg-brand-50"
               : error
               ? "border-red-400 bg-red-50"
               : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"

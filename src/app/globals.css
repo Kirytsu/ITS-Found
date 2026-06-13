@@ -2,8 +2,21 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-@theme inline {
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+@theme {
+  --font-sans: var(--font-jakarta), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+
+  /* ── ITS Navy Blue brand palette (primary = brand-500) ── */
+  --color-brand-50:  #eef3ff;
+  --color-brand-100: #d9e4ff;
+  --color-brand-200: #b6ccff;
+  --color-brand-300: #84a8ff;
+  --color-brand-400: #4f7cf5;
+  --color-brand-500: #002e8a; /* primary ITS navy */
+  --color-brand-600: #00276f; /* hover */
+  --color-brand-700: #001f59; /* active / text-on-light */
+  --color-brand-800: #001a4a;
+  --color-brand-900: #00133a;
 }
 
 *,
@@ -19,13 +32,24 @@ html {
 body {
   background-color: #ffffff;
   color: #1a1a1a;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: #002e8a;
+  color: #ffffff;
 }
 
 :where(.dark) body {
   background-color: #0a0a0a;
   color: #f0f0f0;
+}
+
+:where(.dark) ::selection {
+  background-color: #4f7cf5;
+  color: #06122e;
 }
 
 /* ── Dark mode: invert Tailwind's gray/white palette globally ── */
@@ -54,4 +78,54 @@ body {
 .scroll-smooth-x {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+}
+
+/* ── Brand palette retuned for dark mode (lighter navy → legible on near-black) ── */
+:where(.dark) {
+  --color-brand-50:  #0e1a3a;
+  --color-brand-100: #14254d;
+  --color-brand-200: #1c3366;
+  --color-brand-300: #2b4a8f;
+  --color-brand-400: #3f63b5;
+  --color-brand-500: #5b86f0; /* primary in dark */
+  --color-brand-600: #7aa0f5;
+  --color-brand-700: #9bb8f8; /* text-on-dark */
+  --color-brand-800: #bcd0fb;
+  --color-brand-900: #dde8fe;
+}
+
+/* ── Brand surfaces & accents ── */
+.bg-brand-gradient {
+  background-color: #002e8a;
+}
+:where(.dark) .bg-brand-gradient {
+  background-color: #1c3366;
+}
+
+/* Subtle dotted ITS-navy texture for hero/branded panels */
+.bg-brand-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* ── Motion: staggered page-load reveal ── */
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-rise {
+  animation: fade-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.96) translateY(-6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-pop-in {
+  animation: pop-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-rise,
+  .animate-pop-in { animation: none; }
 }

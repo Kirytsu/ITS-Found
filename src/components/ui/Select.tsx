@@ -33,7 +33,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             required={required}
             className={clsx(
               "w-full appearance-none rounded-lg border border-gray-200 bg-white px-3 py-2.5 pr-9 text-sm text-gray-900",
-              "focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent",
+              "focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent",
               "disabled:bg-gray-50 disabled:cursor-not-allowed",
               error && "border-red-400",
               className

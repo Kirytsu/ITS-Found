@@ -6,29 +6,26 @@ import Link from "next/link";
 import { Mail, Calendar, FileText, Bell } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import { getUserProfile } from "@/lib/actions/user.actions";
-
-function formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString("id-ID", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    });
-}
+import { getLocale } from "@/lib/i18n/server";
+import { getTranslator } from "@/lib/i18n/dictionaries";
+import { formatDate } from "@/lib/utils";
 
 export default async function ProfilePage() {
     const user = await getUserProfile();
+    const locale = await getLocale();
+    const t = getTranslator(locale);
 
-    const roleLabel = user.role === "ADMIN" ? "Administrator" : "User";
+    const roleLabel = user.role === "ADMIN" ? t("profile.role.admin") : t("profile.role.user");
 
     return (
         <div className="flex flex-col gap-6">
-            <PageHeader title="Profil Saya" />
+            <PageHeader title={t("profile.title")} />
 
             {/* Profile Card */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
                 {/* Avatar + Basic Info */}
                 <div className="flex items-start gap-4 pb-5 border-b border-gray-100">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 select-none">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 select-none">
                         {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -45,7 +42,7 @@ export default async function ProfilePage() {
                             <Mail size={18} className="text-gray-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500">Email</p>
+                            <p className="text-xs text-gray-500">{t("profile.email")}</p>
                             <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
                         </div>
                     </div>
@@ -56,9 +53,9 @@ export default async function ProfilePage() {
                             <Calendar size={18} className="text-gray-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500">Bergabung sejak</p>
+                            <p className="text-xs text-gray-500">{t("profile.joined")}</p>
                             <p className="text-sm font-medium text-gray-900">
-                                {formatDate(user.createdAt)}
+                                {formatDate(user.createdAt, locale)}
                             </p>
                         </div>
                     </div>
@@ -74,7 +71,7 @@ export default async function ProfilePage() {
                             <FileText size={18} className="text-gray-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500">Total Laporan</p>
+                            <p className="text-xs text-gray-500">{t("profile.totalReports")}</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{user._count.reports}</p>
                         </div>
                     </div>
@@ -87,7 +84,7 @@ export default async function ProfilePage() {
                             <Bell size={18} className="text-gray-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-500">Notifikasi Belum Dibaca</p>
+                            <p className="text-xs text-gray-500">{t("profile.unread")}</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{user._count.notifications}</p>
                         </div>
                     </div>
@@ -100,7 +97,7 @@ export default async function ProfilePage() {
                     href="/my-reports"
                     className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
                 >
-                    <span className="text-sm font-semibold text-gray-900">Lihat Semua Laporan</span>
+                    <span className="text-sm font-semibold text-gray-900">{t("profile.viewAllReports")}</span>
                     <span className="text-gray-400">→</span>
                 </Link>
 
@@ -108,7 +105,7 @@ export default async function ProfilePage() {
                     href="/notifications"
                     className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
                 >
-                    <span className="text-sm font-semibold text-gray-900">Lihat Notifikasi</span>
+                    <span className="text-sm font-semibold text-gray-900">{t("profile.viewNotifications")}</span>
                     <span className="text-gray-400">→</span>
                 </Link>
 
@@ -116,7 +113,7 @@ export default async function ProfilePage() {
                     href="/settings"
                     className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
                 >
-                    <span className="text-sm font-semibold text-gray-900">Pengaturan</span>
+                    <span className="text-sm font-semibold text-gray-900">{t("nav.settings")}</span>
                     <span className="text-gray-400">→</span>
                 </Link>
             </div>

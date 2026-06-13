@@ -8,9 +8,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Phone, MapPin, Pencil, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { ToastContainer, useToast } from "@/components/ui/Toast";
+import { useT } from "@/components/shared/LanguageProvider";
 import { deleteReport, resolveReport } from "@/lib/actions/report.actions";
 import { createClaim, cancelClaim } from "@/lib/actions/claim.actions";
 import FileUpload from "@/components/ui/FileUpload";
@@ -86,6 +87,7 @@ export default function ReportDetailActions({
   const [claimFileError, setClaimFileError] = useState("");
 
   const { toasts, addToast, dismiss } = useToast();
+  const t = useT();
 
   const executeDelete = () => {
     startTransition(async () => {
@@ -210,25 +212,28 @@ export default function ReportDetailActions({
               variant="primary" size="full" className="rounded-full flex-1"
               icon={<CheckCircle size={15} />} disabled={isPending} onClick={() => setShowResolveConfirm(true)}
             >
-              Selesai
+              {t("action.resolve")}
             </Button>
           )}
           <Link href={`/report/${report.id}/edit`} className="flex-1">
             <Button variant="outline" size="full" className="rounded-full flex justify-center items-center" icon={<Pencil size={15} />}>
-              Ubah
+              {t("action.edit")}
             </Button>
           </Link>
           <Button
             variant="destructive" size="full" className="rounded-full flex-1"
             icon={<Trash2 size={15} />} disabled={isPending} onClick={() => setShowConfirm(true)}
           >
-            Hapus
+            {t("action.delete")}
           </Button>
         </StickyBar>
       )}
 
-      {/* Other user viewing a FOUND report — show contact + location + claim if logged in */}
-      {report.type === "FOUND" && report.facility && report.status === "PUBLISHED" && !(isOwner || isAdmin) && (
+      {/* Other user viewing a published FOUND report — claim / cancel-claim only.
+          Facility contact + address stay in the detail meta card. Bar renders only
+          when the viewer actually has an action (never an empty bar). */}
+      {report.type === "FOUND" && report.status === "PUBLISHED" && !(isOwner || isAdmin) &&
+        ((!!userId && !hasClaim && userRole !== "ADMIN") || (!!userId && hasClaim && userId === claimUserId)) && (
         <StickyBar>
           {/* Claim Button: logged in, report not claimed, not admin */}
           {userId && !hasClaim && userRole !== "ADMIN" && (
@@ -237,7 +242,7 @@ export default function ReportDetailActions({
               icon={<CheckCircle size={15} />}
               onClick={() => setShowClaimModal(true)}
             >
-              Klaim Barang
+              {t("action.claim")}
             </Button>
           )}
 
@@ -248,26 +253,9 @@ export default function ReportDetailActions({
               icon={<AlertTriangle size={15} />}
               onClick={() => setShowCancelConfirm(true)}
             >
-              Batalkan Klaim
+              {t("action.cancelClaim")}
             </Button>
           )}
-
-          <a href={`tel:${report.facility.phone.replace(/\D/g, "")}`} className="flex-1">
-            <Button
-              variant={userId && (!hasClaim && userRole !== "ADMIN" || userId === claimUserId) ? "outline" : "primary"}
-              size="full" className="rounded-full flex justify-center items-center" icon={<Phone size={15} />}
-            >
-              {userId && (!hasClaim && userRole !== "ADMIN" || userId === claimUserId) ? "Hubungi" : "Hubungi Fasilitas"}
-            </Button>
-          </a>
-          <a
-            href={`https://maps.google.com/?q=${encodeURIComponent(report.facility.name + " ITS Surabaya")}`}
-            target="_blank" rel="noopener noreferrer" className="flex-1"
-          >
-            <Button variant="secondary" size="full" className="rounded-full flex justify-center items-center" icon={<MapPin size={15} />}>
-              Lokasi
-            </Button>
-          </a>
         </StickyBar>
       )}
 
@@ -279,9 +267,9 @@ export default function ReportDetailActions({
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-2">
                 <AlertTriangle size={24} />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Hapus Laporan?</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("modal.delete.title")}</h3>
               <p className="text-sm text-gray-500">
-                Tindakan ini tidak dapat dibatalkan. Laporan akan dihapus secara permanen dari sistem.
+                {t("modal.delete.body")}
               </p>
             </div>
             <div className="flex border-t border-gray-100">
@@ -290,7 +278,7 @@ export default function ReportDetailActions({
                 disabled={isPending}
                 className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
               >
-                Batal
+                {t("common.cancel")}
               </button>
               <div className="w-[1px] bg-gray-100" />
               <button
@@ -298,7 +286,7 @@ export default function ReportDetailActions({
                 disabled={isPending}
                 className="flex-1 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
               >
-                {isPending ? "Menghapus..." : "Ya, Hapus"}
+                {isPending ? t("action.deleting") : t("modal.delete.confirm")}
               </button>
             </div>
           </div>
@@ -311,11 +299,11 @@ export default function ReportDetailActions({
           <div className={`bg-white rounded-2xl w-full ${report.type === "FOUND" && !hasClaim ? "max-w-md" : "max-w-sm"} overflow-hidden shadow-xl animate-in zoom-in-95 duration-200`}>
             <div className="p-6 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
               <div className="flex flex-col items-center text-center gap-1">
-                <CheckCircle size={28} className="text-teal-500 mb-1" />
-                <h3 className="text-lg font-bold text-gray-900">Tandai Selesai?</h3>
+                <CheckCircle size={28} className="text-brand-500 mb-1" />
+                <h3 className="text-lg font-bold text-gray-900">{t("modal.resolve.title")}</h3>
                 {report.type === "LOST" && (
                   <p className="text-sm text-gray-500">
-                    Apakah Anda yakin laporan ini telah selesai? (Misalnya barang sudah ditemukan sendiri). Status laporan akan diubah dan tidak dapat dikembalikan.
+                    Apakah Anda yakin laporan ini telah selesai? Status laporan akan diubah dan tidak dapat dikembalikan.
                   </p>
                 )}
                 {report.type === "FOUND" && hasClaim && (
@@ -339,7 +327,7 @@ export default function ReportDetailActions({
                       value={takerName}
                       onChange={(e) => setTakerName(e.target.value)}
                       placeholder="Nama Lengkap Pengambil"
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
@@ -350,7 +338,7 @@ export default function ReportDetailActions({
                       value={takerPhone}
                       onChange={(e) => setTakerPhone(e.target.value)}
                       placeholder="Nomor HP Aktif"
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
@@ -361,7 +349,7 @@ export default function ReportDetailActions({
                       value={takerIdCard}
                       onChange={(e) => setTakerIdCard(e.target.value)}
                       placeholder="Contoh: 5025211001"
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
@@ -378,7 +366,7 @@ export default function ReportDetailActions({
                       onChange={(e) => setTakerNotes(e.target.value)}
                       placeholder="Catatan tambahan mengenai serah terima..."
                       rows={2}
-                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400"
+                      className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -398,15 +386,15 @@ export default function ReportDetailActions({
                 disabled={isPending}
                 className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
               >
-                Batal
+                {t("common.cancel")}
               </button>
               <div className="w-[1px] bg-gray-100" />
               <button
                 onClick={executeResolve}
                 disabled={isPending}
-                className="flex-1 py-4 text-sm font-bold text-teal-600 hover:bg-teal-50 transition-colors"
+                className="flex-1 py-4 text-sm font-bold text-brand-600 hover:bg-brand-50 transition-colors"
               >
-                {isPending ? "Memproses..." : "Ya, Selesai"}
+                {isPending ? t("common.processing") : t("modal.resolve.confirm")}
               </button>
             </div>
           </div>
@@ -419,27 +407,27 @@ export default function ReportDetailActions({
           <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl animate-in zoom-in-95 duration-200">
             <div className="p-6 flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
               <div className="flex flex-col items-center text-center gap-1">
-                <CheckCircle size={28} className="text-teal-500 mb-1" />
-                <h3 className="text-lg font-bold text-gray-900">Klaim Barang</h3>
+                <CheckCircle size={28} className="text-brand-500 mb-1" />
+                <h3 className="text-lg font-bold text-gray-900">{t("modal.claim.title")}</h3>
                 <p className="text-xs text-gray-500">
-                  Ajukan klaim kepemilikan barang ini. Pastikan Anda mengunggah bukti valid.
+                  {t("modal.claim.body")}
                 </p>
               </div>
 
               <FileUpload
-                label="Foto Bukti"
+                label={t("modal.photoProof")}
                 onFileChange={setClaimFile}
                 error={claimFileError}
               />
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-900">Catatan Tambahan (Opsional)</label>
+                <label className="text-sm font-semibold text-gray-900">{t("modal.notesOptional")}</label>
                 <textarea
                   value={claimNotes}
                   onChange={(e) => setClaimNotes(e.target.value)}
                   placeholder="Masukkan deskripsi tambahan atau pesan khusus..."
                   rows={3}
-                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -455,15 +443,15 @@ export default function ReportDetailActions({
                 disabled={isPending}
                 className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
               >
-                Batal
+                {t("common.cancel")}
               </button>
               <div className="w-[1px] bg-gray-100" />
               <button
                 onClick={executeCreateClaim}
                 disabled={isPending}
-                className="flex-1 py-4 text-sm font-bold text-teal-600 hover:bg-teal-50 transition-colors"
+                className="flex-1 py-4 text-sm font-bold text-brand-600 hover:bg-brand-50 transition-colors"
               >
-                {isPending ? "Memproses..." : "Ajukan Klaim"}
+                {isPending ? t("common.processing") : t("modal.claim.submit")}
               </button>
             </div>
           </div>
@@ -478,9 +466,9 @@ export default function ReportDetailActions({
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-2">
                 <AlertTriangle size={24} />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Batalkan Klaim?</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t("modal.cancelClaim.title")}</h3>
               <p className="text-sm text-gray-500">
-                Apakah Anda yakin ingin membatalkan klaim untuk barang ini? Laporan ini akan terbuka kembali untuk diklaim oleh pengguna lain.
+                {t("modal.cancelClaim.body")}
               </p>
             </div>
             <div className="flex border-t border-gray-100">
@@ -489,7 +477,7 @@ export default function ReportDetailActions({
                 disabled={isPending}
                 className="flex-1 py-4 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
               >
-                Batal
+                {t("common.cancel")}
               </button>
               <div className="w-[1px] bg-gray-100" />
               <button
@@ -497,7 +485,7 @@ export default function ReportDetailActions({
                 disabled={isPending}
                 className="flex-1 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
               >
-                {isPending ? "Membatalkan..." : "Ya, Batalkan"}
+                {isPending ? t("action.cancelling") : t("modal.cancelClaim.confirm")}
               </button>
             </div>
           </div>

@@ -1,13 +1,18 @@
 /**
  * src/app/(main)/page.tsx — Dashboard / Home
- * Monochrome design — icons same color (gray-600), no orange/teal on cards.
+ * Branded ITS-navy hero + semantic action cards (orange = kehilangan, navy = penemuan).
  */
 import Link from "next/link";
-import { ArrowRight, Search, PackageOpen } from "lucide-react";
+import { ArrowRight, Search, PackageOpen, ClipboardList, Archive } from "lucide-react";
 import { getRecentReports } from "@/lib/actions/report.actions";
 import ReportCard from "@/components/shared/ReportCard";
+import { getLocale } from "@/lib/i18n/server";
+import { getTranslator } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/config";
 
 export default async function HomePage() {
+  const locale = await getLocale();
+  const t = getTranslator(locale);
   const [recentLost, recentFound] = await Promise.all([
     getRecentReports("LOST", 4),
     getRecentReports("FOUND", 2),
@@ -15,56 +20,95 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* ── Hero ── */}
-      <section className="text-center pt-4 pb-2">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-snug">
-          Menemukan atau<br className="sm:hidden" /> Kehilangan Barang?
-        </h1>
-        <p className="text-sm text-gray-500 mt-2">
-          Laporkan dan temukan barang hilang di lingkungan kampus ITS.
-        </p>
+      {/* ── Hero — branded ITS-navy panel ── */}
+      <section className="relative overflow-hidden rounded-3xl bg-brand-gradient text-white px-6 py-8 sm:py-10 shadow-lg shadow-brand-900/20 animate-fade-rise">
+        <div aria-hidden className="absolute inset-0 bg-brand-grid opacity-50" />
+        <div aria-hidden className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-3">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-white/80" /> {t("dashboard.kicker")}
+          </span>
+          <h1 className="font-display text-3xl sm:text-4xl font-semibold leading-[1.1]">
+            {t("dashboard.heroTitle")}
+          </h1>
+          <p className="text-sm text-white/80 max-w-md leading-relaxed">
+            {t("dashboard.heroSubtitle")}
+          </p>
+        </div>
       </section>
 
-      {/* ── Action Cards — monochrome style ── */}
-      <section className="grid grid-cols-2 gap-4">
-        <Link href="/report/new?type=lost" className="block">
-          <div className="flex flex-col items-center gap-3 p-5 sm:p-6 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group">
-            <div className="w-12 h-12 rounded-xl bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
-              <Search size={22} className="text-gray-600" strokeWidth={2} />
+      {/* ── Action Cards — solid color = differentiate lapor vs lihat, orange = kehilangan, navy = penemuan ── */}
+      <section className="grid grid-cols-2 gap-3">
+        <Link href="/report/new?type=lost" className="block animate-fade-rise" style={{ animationDelay: "60ms" }}>
+          <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl bg-orange-600 hover:bg-orange-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <Search size={20} className="text-white" strokeWidth={2} />
             </div>
-            <span className="text-xs sm:text-sm font-bold text-gray-800 text-center leading-snug">
-              Lapor Kehilangan
-            </span>
+            <div>
+              <p className="text-sm sm:text-base font-bold text-white leading-snug">{t("nav.reportLost")}</p>
+              <p className="text-xs text-white/75 leading-relaxed mt-0.5">{t("dashboard.cardReportLostDesc")}</p>
+            </div>
           </div>
         </Link>
 
-        <Link href="/report/new?type=found" className="block">
-          <div className="flex flex-col items-center gap-3 p-5 sm:p-6 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group">
-            <div className="w-12 h-12 rounded-xl bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
-              <PackageOpen size={22} className="text-gray-600" strokeWidth={2} />
+        <Link href="/report/new?type=found" className="block animate-fade-rise" style={{ animationDelay: "120ms" }}>
+          <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl bg-brand-600 hover:bg-brand-700 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <PackageOpen size={20} className="text-white" strokeWidth={2} />
             </div>
-            <span className="text-xs sm:text-sm font-bold text-gray-800 text-center leading-snug">
-              Lapor Penemuan
-            </span>
+            <div>
+              <p className="text-sm sm:text-base font-bold text-white leading-snug">{t("nav.reportFound")}</p>
+              <p className="text-xs text-white/75 leading-relaxed mt-0.5">{t("dashboard.cardReportFoundDesc")}</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/lost" className="block animate-fade-rise" style={{ animationDelay: "180ms" }}>
+          <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl border-2 border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-950/50 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center">
+              <ClipboardList size={20} className="text-orange-600 dark:text-orange-400" strokeWidth={2} />
+            </div>
+            <div>
+              <p className="text-sm sm:text-base font-bold text-orange-700 dark:text-orange-400 leading-snug">{t("page.lost.title")}</p>
+              <p className="text-xs text-orange-600/80 dark:text-orange-400/70 leading-relaxed mt-0.5">{t("dashboard.cardBrowseLostDesc")}</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/found" className="block animate-fade-rise" style={{ animationDelay: "240ms" }}>
+          <div className="flex h-full flex-col gap-2.5 p-4 sm:p-5 rounded-2xl border-2 border-brand-200 bg-brand-50 hover:bg-brand-100 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center">
+              <Archive size={20} className="text-brand-600" strokeWidth={2} />
+            </div>
+            <div>
+              <p className="text-sm sm:text-base font-bold text-brand-700 leading-snug">{t("page.found.title")}</p>
+              <p className="text-xs text-brand-600/80 leading-relaxed mt-0.5">{t("dashboard.cardBrowseFoundDesc")}</p>
+            </div>
           </div>
         </Link>
       </section>
 
       {/* ── Recent Lost Reports ── */}
       <ReportSection
-        title="Laporan kehilangan terbaru"
+        title={t("dashboard.recentLost")}
         seeAllHref="/lost"
+        seeAllLabel={t("common.seeAll")}
+        moreLabel={t("common.showMore")}
         reports={recentLost}
-        emptyText="Belum ada laporan kehilangan."
+        emptyText={t("dashboard.emptyLost")}
+        locale={locale}
       />
 
       {/* ── Recent Found Reports ── */}
       {recentFound.length > 0 && (
         <ReportSection
-          title="Laporan penemuan terbaru"
+          title={t("dashboard.recentFound")}
           seeAllHref="/found"
+          seeAllLabel={t("common.seeAll")}
+          moreLabel={t("common.showMore")}
           reports={recentFound}
-          emptyText="Belum ada laporan penemuan."
+          emptyText={t("dashboard.emptyFound")}
+          locale={locale}
         />
       )}
     </div>
@@ -72,12 +116,15 @@ export default async function HomePage() {
 }
 
 function ReportSection({
-  title, seeAllHref, reports, emptyText,
+  title, seeAllHref, seeAllLabel, moreLabel, reports, emptyText, locale,
 }: {
   title: string;
   seeAllHref: string;
+  seeAllLabel: string;
+  moreLabel: string;
   reports: Awaited<ReturnType<typeof getRecentReports>>;
   emptyText: string;
+  locale: Locale;
 }) {
   return (
     <section className="flex flex-col gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -85,9 +132,9 @@ function ReportSection({
         <h2 className="text-base font-bold text-gray-900 min-w-0 truncate">{title}</h2>
         <Link
           href={seeAllHref}
-          className="flex items-center gap-1 text-sm font-semibold text-teal-600 hover:text-teal-700 flex-shrink-0"
+          className="flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-700 flex-shrink-0"
         >
-          Lihat semua <ArrowRight size={14} />
+          {seeAllLabel} <ArrowRight size={14} />
         </Link>
       </div>
 
@@ -96,11 +143,11 @@ function ReportSection({
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {reports.map((r) => <ReportCard key={r.id} report={r} />)}
+            {reports.map((r) => <ReportCard key={r.id} report={r} locale={locale} />)}
           </div>
           <Link href={seeAllHref}>
-            <button className="w-full py-3 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 active:bg-black transition-colors">
-              Tampilkan lebih
+            <button className="w-full py-3 rounded-full bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 active:bg-brand-800 transition-colors">
+              {moreLabel}
             </button>
           </Link>
         </>

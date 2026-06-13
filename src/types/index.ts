@@ -33,7 +33,8 @@ export interface SessionPayload {
 export type ReportWithRelations = Report & {
   author: Pick<User, "id" | "name" | "email">;
   category: Category;
-  area: Area;
+  area: Area;            // primary area (FOUND: the area; LOST: first selected)
+  areas: Area[];         // all areas this report spans (FOUND: 1; LOST: 1..n)
   facility: Facility | null;
   verifiedBy: { name: string } | null;
   resolvedBy: { name: string } | null;
@@ -64,7 +65,8 @@ export interface CreateReportInput {
   title: string;
   type: ReportType;
   categoryId: string;
-  areaId: string;
+  areaId: string;            // primary area (LOST: first of areaIds)
+  areaIds: string[];         // all areas (FOUND: [areaId]; LOST: 1..n)
   facilityId?: string;       // required if type == FOUND
   locationDetail: string;
   description: string;
@@ -76,6 +78,7 @@ export interface UpdateReportInput {
   title?: string;
   categoryId?: string;
   areaId?: string;
+  areaIds?: string[];
   facilityId?: string;
   locationDetail?: string;
   description?: string;

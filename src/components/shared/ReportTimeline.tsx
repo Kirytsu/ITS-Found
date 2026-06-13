@@ -60,8 +60,8 @@ export default function ReportTimeline({ report }: { report: ReportWithRelations
         {/* Diselesaikan / Diambil */}
         {report.status === "RESOLVED" && report.resolvedAt && report.resolvedBy && (
           <div className="relative pl-8">
-            <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-teal-50 border-2 border-white flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-teal-500" />
+            <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-brand-50 border-2 border-white flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-brand-500" />
             </div>
             {report.type === "FOUND" ? (
               <p className="text-sm font-medium text-gray-900">

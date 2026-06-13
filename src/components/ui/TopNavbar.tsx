@@ -8,7 +8,7 @@
  * Section 3 — "Lapor": Lapor Kehilangan | Lapor Penemuan
  * Section 4 — bottom: Profil | Notifikasi | Pengaturan | Keluar
  *
- * All icons are monochrome gray — teal ONLY for active state.
+ * All icons are monochrome gray — brand navy ONLY for active state.
  */
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -20,16 +20,18 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { logoutUser } from "@/lib/actions/auth.actions";
+import BrandMark from "@/components/ui/BrandMark";
+import { useT } from "@/components/shared/LanguageProvider";
 
 /* ─────────────── Types ─────────────────────────────────────────────────────── */
 interface NavSection {
-  label?: string;           // section header label (optional)
+  labelKey?: string;        // section header label key (optional)
   items: NavItemConfig[];
 }
 
 interface NavItemConfig {
   href: string;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
   adminOnly?: boolean;
 }
@@ -46,27 +48,27 @@ function buildSections(isAdmin?: boolean): NavSection[] {
     {
       // Section 1: Dashboard (no label)
       items: [
-        { href: "/", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
         ...(isAdmin
-          ? [{ href: "/admin/verification", label: "Verifikasi Laporan", icon: ShieldCheck }]
+          ? [{ href: "/admin/verification", labelKey: "nav.verify", icon: ShieldCheck }]
           : []),
       ],
     },
     {
       // Section 2: Laporan
-      label: "Laporan",
+      labelKey: "nav.section.reports",
       items: [
-        { href: "/lost", label: "Kehilangan", icon: Search },
-        { href: "/found", label: "Penemuan", icon: PackageOpen },
-        { href: "/my-reports", label: "Laporan Saya", icon: ClipboardList },
+        { href: "/lost", labelKey: "nav.lost", icon: Search },
+        { href: "/found", labelKey: "nav.found", icon: PackageOpen },
+        { href: "/my-reports", labelKey: "nav.myReports", icon: ClipboardList },
       ],
     },
     {
       // Section 3: Lapor (create)
-      label: "Lapor",
+      labelKey: "nav.section.report",
       items: [
-        { href: "/report/new?type=lost", label: "Lapor Kehilangan", icon: PlusCircle },
-        { href: "/report/new?type=found", label: "Lapor Penemuan", icon: PlusCircle },
+        { href: "/report/new?type=lost", labelKey: "nav.reportLost", icon: PlusCircle },
+        { href: "/report/new?type=found", labelKey: "nav.reportFound", icon: PlusCircle },
       ],
     },
   ];
@@ -76,6 +78,7 @@ function buildSections(isAdmin?: boolean): NavSection[] {
 function NavLink({ item, onClose, badge }: { item: NavItemConfig; onClose?: () => void; badge?: number }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useT();
 
   let isActive = false;
   if (item.href === "/") {
@@ -102,17 +105,17 @@ function NavLink({ item, onClose, badge }: { item: NavItemConfig; onClose?: () =
       className={clsx(
         "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors relative",
         isActive
-          ? "bg-teal-50 text-teal-700 font-semibold"
+          ? "bg-brand-50 text-brand-700 font-semibold"
           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
       )}
     >
-      {/* Icon always monochrome — teal only when active */}
+      {/* Icon always monochrome — brand navy only when active */}
       <Icon
         size={18}
-        className={isActive ? "text-teal-600" : "text-gray-400"}
+        className={isActive ? "text-brand-600" : "text-gray-400"}
         strokeWidth={isActive ? 2.5 : 2}
       />
-      {item.label}
+      {t(item.labelKey)}
       {/* Badge for notifications */}
       {!!badge && badge > 0 && (
         <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -132,33 +135,34 @@ function SidebarContent({
   onLogout: () => void;
   hasClearedNotifs: boolean;
 }) {
+  const t = useT();
   const displayCount = hasClearedNotifs ? 0 : unreadCount;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Profile Card (Desktop) */}
       <Link href="/profile" className="hidden lg:block px-4 py-4 border-b border-gray-100 flex-shrink-0 hover:bg-gray-50 transition-colors rounded-b-xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 select-none">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 select-none">
             {userName ? userName.charAt(0).toUpperCase() : "?"}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Lihat profil</p>
+            <p className="text-xs text-gray-500 mt-0.5">{t("nav.viewProfile")}</p>
           </div>
         </div>
       </Link>
 
       {/* Brand */}
       <div className="px-4 py-5 border-b border-gray-100 flex-shrink-0">
-        <p className="text-lg font-bold tracking-tight text-gray-900 select-none">ITS Found</p>
-        <p className="text-xs text-gray-400 mt-0.5 truncate">
-          {userName ? `Halo, ${userName}` : "Sistem Penemuan Barang ITS"}
+        <BrandMark size="md" />
+        <p className="text-xs text-gray-400 mt-2 truncate">
+          {userName ? t("nav.greeting", { name: userName }) : t("nav.tagline")}
         </p>
         {displayCount > 0 && (
           <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-red-600">
             <span className="h-1.5 w-1.5 rounded-full bg-red-500 inline-block" />
-            {displayCount} notifikasi belum dibaca
+            {t("nav.unread", { count: displayCount })}
           </span>
         )}
       </div>
@@ -167,9 +171,9 @@ function SidebarContent({
       <nav className="flex-1 px-2 py-3 flex flex-col gap-4 overflow-y-auto">
         {sections.map((section, si) => (
           <div key={si} className="flex flex-col gap-0.5">
-            {section.label && (
+            {section.labelKey && (
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-1">
-                {section.label}
+                {t(section.labelKey)}
               </p>
             )}
             {section.items.map((item) => (
@@ -182,16 +186,16 @@ function SidebarContent({
       {/* Bottom: Profil + Notifikasi + Pengaturan + Keluar */}
       <div className="px-2 pb-4 pt-3 border-t border-gray-100 flex-shrink-0 flex flex-col gap-0.5">
         <NavLink
-          item={{ href: "/profile", label: "Profil Saya", icon: User }}
+          item={{ href: "/profile", labelKey: "nav.profile", icon: User }}
           onClose={onClose}
         />
         <NavLink
-          item={{ href: "/notifications", label: "Notifikasi", icon: Bell }}
+          item={{ href: "/notifications", labelKey: "nav.notifications", icon: Bell }}
           onClose={onClose}
           badge={displayCount}
         />
         <NavLink
-          item={{ href: "/settings", label: "Pengaturan", icon: Settings }}
+          item={{ href: "/settings", labelKey: "nav.settings", icon: Settings }}
           onClose={onClose}
         />
         <button
@@ -199,7 +203,7 @@ function SidebarContent({
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
         >
           <LogOut size={18} className="text-gray-400" strokeWidth={2} />
-          Keluar
+          {t("nav.logout")}
         </button>
       </div>
     </div>
@@ -211,9 +215,10 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [hasClearedNotifs, setHasClearedNotifs] = useState(false);
-  
+
   const pathname = usePathname();
   const router = useRouter();
+  const t = useT();
   const sections = buildSections(isAdmin);
 
   useEffect(() => {
@@ -253,19 +258,19 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
         <button
           onClick={() => setDrawerOpen(true)}
           className="p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
-          aria-label="Buka menu"
+          aria-label="Menu"
         >
           <Menu size={22} />
         </button>
 
-        <span className="text-base font-bold text-gray-900 tracking-tight">ITS Found</span>
+        <BrandMark size="sm" />
 
         {/* Avatar with notif dot - clickable profile dropdown */}
         <div className="relative">
           <button
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-            className="relative w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold select-none hover:shadow-md transition-shadow"
-            aria-label="Profil"
+            className="relative w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-xs font-bold select-none hover:shadow-md transition-shadow"
+            aria-label={t("nav.profile")}
           >
             {userName ? userName.charAt(0).toUpperCase() : "?"}
           </button>
@@ -282,7 +287,7 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
               />
               <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl border border-gray-200 shadow-lg z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-xs text-gray-500">Terdaftar sebagai</p>
+                  <p className="text-xs text-gray-500">{t("nav.registeredAs")}</p>
                   <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
                 </div>
                 <div className="flex flex-col py-2">
@@ -292,7 +297,7 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                   >
                     <User size={16} className="text-gray-400" />
-                    Profil Saya
+                    {t("nav.profile")}
                   </Link>
                   <Link
                     href="/notifications"
@@ -300,7 +305,7 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 relative"
                   >
                     <Bell size={16} className="text-gray-400" />
-                    Notifikasi
+                    {t("nav.notifications")}
                     {currentDisplayCount > 0 && (
                       <span className="ml-auto text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
                         {currentDisplayCount}
@@ -313,7 +318,7 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                   >
                     <Settings size={16} className="text-gray-400" />
-                    Pengaturan
+                    {t("nav.settings")}
                   </Link>
                   <button
                     onClick={async () => {
@@ -328,7 +333,7 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
                   >
                     <LogOut size={16} className="text-gray-400" />
-                    Keluar
+                    {t("nav.logout")}
                   </button>
                 </div>
               </div>

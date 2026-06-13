@@ -45,7 +45,7 @@ export default function AdminVerificationPage() {
       <PageHeader title="Verifikasi Laporan" />
 
       {feedback && (
-        <div className="rounded-lg bg-teal-50 border border-teal-200 px-4 py-3 text-sm text-teal-800">
+        <div className="rounded-lg bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-800">
           {feedback}
         </div>
       )}
@@ -54,7 +54,7 @@ export default function AdminVerificationPage() {
         <p className="py-8 text-center text-sm text-gray-400">Memuat...</p>
       ) : reports.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-3">
-          <ShieldCheck size={48} className="text-teal-300" />
+          <ShieldCheck size={48} className="text-brand-300" />
           <p className="text-sm text-gray-400">Tidak ada laporan yang perlu diverifikasi.</p>
         </div>
       ) : (

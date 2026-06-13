@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sun, Moon } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import { useTheme } from "@/components/shared/ThemeProvider";
+import { useLanguage, useT } from "@/components/shared/LanguageProvider";
+import type { Locale } from "@/lib/i18n/config";
 
 type Theme = "light" | "dark";
-type Language = "id" | "en";
 
 function ToggleGroup<T extends string>({
   value, onChange, options,
@@ -15,10 +16,10 @@ function ToggleGroup<T extends string>({
       {options.map((opt) => (
         <button
           key={opt.value}
-          onClick={() => { console.log("button clicked:", opt.value); onChange(opt.value); }}
+          onClick={() => onChange(opt.value)}
           className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
             value === opt.value
-              ? "border-teal-500 bg-teal-50 text-teal-700"
+              ? "border-brand-500 bg-brand-50 text-brand-700"
               : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
           }`}
         >
@@ -30,44 +31,51 @@ function ToggleGroup<T extends string>({
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const [language, setLanguage] = useState<Language>("id");
+  const { locale, setLocale } = useLanguage();
+  const t = useT();
+
+  const changeLanguage = (next: Locale) => {
+    if (next === locale) return;
+    setLocale(next);
+    router.refresh(); // re-render server components in the new language
+  };
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Pengaturan" />
+      <PageHeader title={t("settings.title")} />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-base font-bold text-gray-900">Tema</h2>
+        <h2 className="text-base font-bold text-gray-900">{t("settings.theme")}</h2>
         <ToggleGroup<Theme>
           value={theme}
           onChange={setTheme}
           options={[
-            { value: "light", label: <><Sun size={18} /> Mode Terang</> },
-            { value: "dark",  label: <><Moon size={18} /> Mode Gelap</> },
+            { value: "light", label: <><Sun size={18} /> {t("settings.theme.light")}</> },
+            { value: "dark",  label: <><Moon size={18} /> {t("settings.theme.dark")}</> },
           ]}
         />
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-base font-bold text-gray-900">Bahasa</h2>
-        <ToggleGroup<Language>
-          value={language}
-          onChange={setLanguage}
+        <h2 className="text-base font-bold text-gray-900">{t("settings.language")}</h2>
+        <ToggleGroup<Locale>
+          value={locale}
+          onChange={changeLanguage}
           options={[
-            { value: "id", label: <>🇮🇩 Indonesia</> },
-            { value: "en", label: <>🇬🇧 English</> },
+            { value: "id", label: <>ID Indonesia</> },
+            { value: "en", label: <>EN English</> },
           ]}
         />
-        <p className="text-xs text-gray-400">* Pengaturan bahasa akan diimplementasikan pada versi berikutnya.</p>
       </section>
 
       <section className="flex flex-col gap-2 mt-2">
-        <h2 className="text-base font-bold text-gray-900">Tentang Aplikasi</h2>
+        <h2 className="text-base font-bold text-gray-900">{t("settings.about")}</h2>
         <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-4 flex flex-col gap-0.5">
-          <p className="text-sm font-bold text-gray-800">ITS Found</p>
-          <p className="text-xs text-gray-500">Sistem Penemuan Barang Hilang ITS</p>
-          <p className="text-xs text-gray-400 mt-1">Versi 1.0.0</p>
+          <p className="text-sm font-bold text-gray-800">{t("settings.about.name")}</p>
+          <p className="text-xs text-gray-500">{t("settings.about.desc")}</p>
+          <p className="text-xs text-gray-400 mt-1">{t("settings.about.version")}</p>
         </div>
       </section>
     </div>

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Combobox from "@/components/ui/Combobox";
+import MultiCombobox from "@/components/ui/MultiCombobox";
 import Textarea from "@/components/ui/Textarea";
 import DatePicker from "@/components/ui/DatePicker";
 import FileUpload from "@/components/ui/FileUpload";
@@ -16,6 +17,8 @@ import Button from "@/components/ui/Button";
 import { ToastContainer, useToast } from "@/components/ui/Toast";
 import { getFacilitiesByArea } from "@/lib/actions/area.actions";
 import { createReport, updateReport } from "@/lib/actions/report.actions";
+import { todayInputValue } from "@/lib/utils";
+import { useT } from "@/components/shared/LanguageProvider";
 import type { SelectOption, CreateReportInput, ReportWithRelations } from "@/types";
 
 interface ReportFormLayoutProps {
@@ -43,10 +46,16 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
   const [isPending, startTransition] = useTransition();
   const { toasts, addToast, dismiss } = useToast();
   const isEdit = !!initialData;
-  const typeLabel = type === "lost" ? "kehilangan" : "penemuan";
+  const isLost = type === "lost";
+  const t = useT();
+  const typeWord = t(isLost ? "typeword.lost" : "typeword.found");
 
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [areaId, setAreaId] = useState(initialData?.areaId ?? "");
+  // LOST may span multiple areas. Seed from existing relation (edit) or primary area.
+  const [areaIds, setAreaIds] = useState<string[]>(
+    initialData?.areas?.map((a) => a.id) ?? (initialData?.areaId ? [initialData.areaId] : [])
+  );
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
   const [facilityId, setFacilityId] = useState(initialData?.facilityId ?? "");
   const [description, setDescription] = useState(initialData?.description ?? "");
@@ -79,9 +88,30 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
     setFacilityOptions([]);
   };
 
+  const todayStr = todayInputValue();
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErrors({});
+
+    // Date guard — required + never in the future (server re-validates authoritatively)
+    if (!incidentDate) {
+      setErrors({ incidentDate: t("form.err.dateRequired") });
+      addToast(t("form.err.dateRequired"), "error");
+      return;
+    }
+    if (incidentDate > todayStr) {
+      setErrors({ incidentDate: t("form.err.dateFuture") });
+      addToast(t("form.err.dateFuture"), "error");
+      return;
+    }
+
+    // Area guard — LOST needs ≥1 area, FOUND needs the single area
+    if (isLost ? areaIds.length === 0 : !areaId) {
+      setErrors({ areaId: t("form.err.areaRequired") });
+      addToast(t("form.err.areaRequired"), "error");
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -97,10 +127,14 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
           }
         }
 
-        // 2. Build payload
+        // 2. Build payload — LOST: multi-area (primary = first); FOUND: single area
+        const allAreaIds = isLost ? areaIds : areaId ? [areaId] : [];
+        const primaryAreaId = isLost ? areaIds[0] ?? "" : areaId;
         const payload: CreateReportInput = {
-          title, type: type === "lost" ? "LOST" : "FOUND",
-          categoryId, areaId,
+          title, type: isLost ? "LOST" : "FOUND",
+          categoryId,
+          areaId: primaryAreaId,
+          areaIds: allAreaIds,
           facilityId: facilityId || undefined,
           locationDetail, description,
           incidentDate: new Date(incidentDate),
@@ -123,7 +157,7 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
           if (result.errors) setErrors(result.errors);
         }
       } catch {
-        addToast("Terjadi kesalahan. Coba lagi.", "error");
+        addToast(t("form.err.generic"), "error");
       }
     });
   }
@@ -134,20 +168,31 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
 
       <form id="report-form" onSubmit={handleSubmit} className="flex flex-col gap-5 pb-28">
         <Input
-          label="Nama Barang" name="title" required
-          placeholder={`Nama barang yang ${typeLabel}`}
+          label={t("form.itemName")} name="title" required
+          placeholder={t("form.itemName.ph", { type: typeWord })}
           value={title} onChange={(e) => setTitle(e.target.value)}
           error={errors.title}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Combobox
-            label="Area" options={areas} value={areaId}
-            onChange={handleAreaChange} placeholder="Pilih Area" required
+        {isLost && (
+          <MultiCombobox
+            label={t("form.area")} options={areas} value={areaIds} onChange={setAreaIds}
+            placeholder={t("form.area.multiPh")}
+            helperText={t("form.area.multiHelp")}
+            required error={errors.areaId}
           />
+        )}
+        <div className={`grid gap-4 ${isLost ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
+          {!isLost && (
+            <Combobox
+              label={t("form.area")} options={areas} value={areaId}
+              onChange={handleAreaChange} placeholder={t("form.area.ph")} required
+              error={errors.areaId}
+            />
+          )}
           <Select
-            label="Kategori" name="categoryId" options={categories}
-            placeholder="Pilih Jenis" required
+            label={t("form.category")} name="categoryId" options={categories}
+            placeholder={t("form.category.ph")} required
             value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
             error={errors.categoryId}
           />
@@ -155,42 +200,43 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
 
         {type === "found" && (
           <Select
-            label="Fasilitas Penitipan" name="facilityId" options={facilityOptions}
-            placeholder={areaId ? "Pilih Fasilitas" : "Pilih area terlebih dahulu"}
+            label={t("form.facility")} name="facilityId" options={facilityOptions}
+            placeholder={areaId ? t("form.facility.ph") : t("form.facility.phNoArea")}
             required value={facilityId}
             onChange={(e) => setFacilityId(e.target.value)}
             disabled={!areaId || facilityOptions.length === 0}
-            helperText="Fasilitas tempat barang dititipkan"
+            helperText={t("form.facility.help")}
             error={errors.facilityId}
           />
         )}
 
         <Textarea
-          label="Deskripsi" name="description" required rows={4}
-          placeholder={`Deskripsi barang yang ${typeLabel} secara lengkap`}
-          helperText={`Masukkan deskripsi barang yang ${typeLabel} selengkapnya`}
+          label={t("form.description")} name="description" required rows={4}
+          placeholder={t("form.description.ph", { type: typeWord })}
+          helperText={t("form.description.help", { type: typeWord })}
           value={description} onChange={(e) => setDescription(e.target.value)}
           error={errors.description}
         />
 
         <DatePicker
-          label="Tanggal Kejadian" name="incidentDate" required
-          helperText={`Perkiraan tanggal ${typeLabel}`}
+          label={t("form.date")} name="incidentDate" required
+          max={todayStr}
+          helperText={t("form.date.help", { type: typeWord })}
           value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)}
           error={errors.incidentDate}
         />
 
         <Input
-          label="Lokasi Kejadian" name="locationDetail" required
-          placeholder="Contoh: Lab 301, Koridor Lantai 2"
-          helperText={`Perkiraan lokasi ${typeLabel}`}
+          label={t("form.location")} name="locationDetail" required
+          placeholder={t("form.location.ph")}
+          helperText={t("form.location.help", { type: typeWord })}
           value={locationDetail} onChange={(e) => setLocationDetail(e.target.value)}
           error={errors.locationDetail}
         />
 
         <FileUpload
-          label="Foto Barang"
-          helperText="Foto akan membantu identifikasi barang (opsional)"
+          label={t("form.photo")}
+          helperText={t("form.photo.help")}
           onFileChange={setSelectedFile}
           currentImageUrl={initialData?.imageUrl ?? undefined}
           error={errors.imageUrl}
@@ -204,7 +250,7 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
             type="button" variant="outline" size="full" className="rounded-full"
             onClick={() => router.back()} disabled={isPending}
           >
-            Batal
+            {t("common.cancel")}
           </Button>
           <Button
             type="button" variant="primary" size="full" className="rounded-full"
@@ -215,7 +261,7 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
                 ?.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }))
             }
           >
-            {isEdit ? "Simpan Perubahan" : "Laporkan"}
+            {isEdit ? t("form.submit.save") : t("form.submit.create")}
           </Button>
         </div>
       </div>

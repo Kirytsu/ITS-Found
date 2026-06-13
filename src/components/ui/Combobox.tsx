@@ -78,10 +78,10 @@ export default function Combobox({
           onClick={() => !disabled && setIsOpen((v) => !v)}
           className={clsx(
             "w-full flex items-center justify-between rounded-lg border bg-white px-3 py-2.5 text-sm text-left",
-            "transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent",
+            "transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent",
             "disabled:bg-gray-50 disabled:cursor-not-allowed",
             error ? "border-red-400" : "border-gray-200",
-            isOpen && "ring-2 ring-teal-500 border-transparent"
+            isOpen && "ring-2 ring-brand-500 border-transparent"
           )}
         >
           <span className={clsx(!selectedLabel && "text-gray-400")}>
@@ -116,8 +116,8 @@ export default function Combobox({
                       key={opt.value}
                       onClick={() => handleSelect(opt)}
                       className={clsx(
-                        "px-3 py-2 text-sm cursor-pointer select-none hover:bg-teal-50 hover:text-teal-700",
-                        opt.value === value && "bg-teal-50 font-semibold text-teal-700"
+                        "px-3 py-2 text-sm cursor-pointer select-none hover:bg-brand-50 hover:text-brand-700",
+                        opt.value === value && "bg-brand-50 font-semibold text-brand-700"
                       )}
                     >
                       {opt.label}

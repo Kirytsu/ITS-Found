@@ -30,7 +30,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   return (
     <>
       {/* Fixed sidebar (desktop) + fixed top-bar (mobile) */}
-      <Suspense fallback={<div className="h-14 bg-white dark:bg-gray-900" />}>
+      <Suspense fallback={<div className="h-14 bg-white" />}>
         <TopNavbar
           unreadCount={unreadCount}
           userName={session?.name}
@@ -43,23 +43,16 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         - On mobile:  no left offset (sidebar is a drawer)
         - On desktop: left offset = sidebar width (lg:pl-64)
       */}
-      <div className="pt-14 lg:pt-0 min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="pt-14 lg:pt-0 lg:pl-64 min-h-screen bg-gray-50">
         {/*
-          Inner wrapper that:
-          - On mobile:  top offset = mobile navbar height (pt-14)
-          - On desktop: no top offset (no top bar)
+          Page content container:
+          - Consistent horizontal padding
+          - Vertical padding for breathing room
+          - max-w-3xl to keep content readable on large screens
+            (centered WITHIN the lg:pl-64 offset space)
         */}
-        <div className="pt-14 lg:pt-0 min-h-screen bg-gray-50">
-          {/*
-            Page content container:
-            - Consistent horizontal padding
-            - Vertical padding for breathing room
-            - max-w-3xl to keep content readable on large screens
-              (centered WITHIN the lg:pl-64 offset space)
-          */}
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {children}
-          </div>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {children}
         </div>
       </div>
     </>

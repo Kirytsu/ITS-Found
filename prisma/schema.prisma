@@ -29,10 +29,11 @@ enum ReportStatus {
 // ─── Master Data (seeded) ─────────────────────────────────────────────────────
 
 model Area {
-  id         String     @id @default(cuid())
-  name       String     @unique
-  facilities Facility[]
-  reports    Report[]
+  id            String     @id @default(cuid())
+  name          String     @unique
+  facilities    Facility[]
+  reports       Report[]   @relation("PrimaryArea")
+  taggedReports Report[]   @relation("ReportAreas")
 }
 
 model Facility {
@@ -77,8 +78,11 @@ model Report {
   categoryId     String
   category       Category     @relation(fields: [categoryId], references: [id])
 
+  // Primary area — FOUND: the single area; LOST: the first selected area (display fallback)
   areaId         String
-  area           Area         @relation(fields: [areaId], references: [id])
+  area           Area         @relation("PrimaryArea", fields: [areaId], references: [id])
+  // All areas this report spans — FOUND: 1; LOST: 1..n. Used for filtering + smart match.
+  areas          Area[]       @relation("ReportAreas")
 
   // Required for FOUND: the specific facility where the item is deposited
   facilityId     String?

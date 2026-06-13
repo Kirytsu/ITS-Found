@@ -20,11 +20,13 @@ export async function findMatches(
 ): Promise<ReportWithRelations[]> {
   const report = await db.report.findUnique({
     where: { id: reportId },
-    include: { area: true, category: true, author: true, facility: true },
+    include: { area: true, areas: true, category: true, author: true, facility: true },
   });
   if (!report) return [];
 
   const oppositeType = report.type === "LOST" ? "FOUND" : "LOST";
+  // A report may span multiple areas (LOST) — match on any overlap.
+  const sourceAreaIds = report.areas.length > 0 ? report.areas.map((a) => a.id) : [report.areaId];
 
   // Build date window: same day ±1 day
   const incidentDay = new Date(report.incidentDate);
@@ -39,7 +41,7 @@ export async function findMatches(
     where: {
       type: oppositeType,
       status: "PUBLISHED",
-      areaId: report.areaId,
+      areas: { some: { id: { in: sourceAreaIds } } },
       categoryId: report.categoryId,
       incidentDate: { gte: from, lte: to },
       id: { not: reportId },
@@ -48,6 +50,7 @@ export async function findMatches(
       author: true,
       category: true,
       area: true,
+      areas: true,
       facility: true,
     },
     orderBy: { createdAt: "desc" },
@@ -299,7 +302,7 @@ export async function getMyNotifications(userId: string) {
     orderBy: { createdAt: "desc" },
     include: {
       matchedReport: {
-        include: { area: true, category: true, author: true, facility: true },
+        include: { area: true, areas: true, category: true, author: true, facility: true },
       },
     },
   });

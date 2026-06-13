@@ -15,7 +15,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
-  primary:     "bg-teal-500 text-white hover:bg-teal-600 active:bg-teal-700 disabled:bg-teal-300",
+  primary:     "bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700 disabled:bg-brand-300",
   secondary:   "bg-blue-900 text-white hover:bg-blue-800 active:bg-blue-950 disabled:bg-blue-300",
   destructive: "bg-red-500 text-white hover:bg-red-600 active:bg-red-700 disabled:bg-red-300",
   outline:     "bg-white border border-gray-300 text-gray-900 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50",
@@ -36,7 +36,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       className={clsx(
         "inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold",
         "transition-colors duration-150 cursor-pointer",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed",
         variantClasses[variant],
         sizeClasses[size],

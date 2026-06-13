@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "../db";
 import { requireSession } from "../auth";
+import { isValidDate, isFutureDate } from "../utils";
 import { findMatches, createMatchNotifications, notifyAdminsNewFoundReport, notifyClaimerReportResolved } from "./notification.actions";
 import type {
   ActionResult,
@@ -19,6 +20,7 @@ const REPORT_INCLUDE = {
   author: { select: { id: true, name: true, email: true } },
   category: true,
   area: true,
+  areas: true,
   facility: true,
   verifiedBy: { select: { name: true } },
   resolvedBy: { select: { name: true } },
@@ -38,15 +40,25 @@ export async function createReport(
   // Validation
   if (!input.title.trim()) return { success: false, message: "Judul wajib diisi." };
   if (!input.categoryId) return { success: false, message: "Kategori wajib dipilih." };
-  if (!input.areaId) return { success: false, message: "Area wajib dipilih." };
+  if (!input.areaId || !input.areaIds || input.areaIds.length === 0) {
+    return { success: false, message: "Area wajib dipilih.", errors: { areaId: "Area wajib dipilih." } };
+  }
   if (!input.description.trim()) return { success: false, message: "Deskripsi wajib diisi." };
   if (!input.locationDetail.trim()) return { success: false, message: "Lokasi kejadian wajib diisi." };
+  if (!isValidDate(input.incidentDate)) {
+    return { success: false, message: "Tanggal kejadian tidak valid.", errors: { incidentDate: "Tanggal kejadian tidak valid." } };
+  }
+  if (isFutureDate(input.incidentDate)) {
+    return { success: false, message: "Tanggal kejadian tidak boleh di masa depan.", errors: { incidentDate: "Tanggal kejadian tidak boleh di masa depan." } };
+  }
   if (input.type === "FOUND" && !input.facilityId) {
     return { success: false, message: "Fasilitas tempat penyimpanan wajib dipilih untuk laporan penemuan." };
   }
 
   // LOST → PUBLISHED immediately; FOUND → UNVERIFIED (needs admin verification)
   const status = input.type === "LOST" ? "PUBLISHED" : "UNVERIFIED";
+
+  const uniqueAreaIds = Array.from(new Set([input.areaId, ...input.areaIds]));
 
   const report = await db.report.create({
     data: {
@@ -55,6 +67,7 @@ export async function createReport(
       status,
       categoryId: input.categoryId,
       areaId: input.areaId,
+      areas: { connect: uniqueAreaIds.map((id) => ({ id })) },
       facilityId: input.facilityId ?? null,
       locationDetail: input.locationDetail.trim(),
       description: input.description.trim(),
@@ -103,7 +116,7 @@ export async function getPublicReports(
   const where: Record<string, unknown> = {
     type,
     status: filters.status || "PUBLISHED",
-    ...(areaId && { areaId }),
+    ...(areaId && { areas: { some: { id: areaId } } }),
     ...(categoryId && { categoryId }),
     ...(dateFrom || dateTo
       ? { incidentDate: { ...(dateFrom && { gte: dateFrom }), ...(dateTo && { lte: dateTo }) } }
@@ -153,7 +166,7 @@ export async function getMyReports(
 
   const where: Record<string, unknown> = {
     authorId: session.userId,
-    ...(areaId && { areaId }),
+    ...(areaId && { areas: { some: { id: areaId } } }),
     ...(categoryId && { categoryId }),
     ...(status && { status }),
     ...(search?.trim()
@@ -203,6 +216,14 @@ export async function updateReport(
   if (report.status === "RESOLVED") {
     return { success: false, message: "Laporan yang sudah selesai tidak dapat diubah." };
   }
+  if (input.incidentDate !== undefined) {
+    if (!isValidDate(input.incidentDate)) {
+      return { success: false, message: "Tanggal kejadian tidak valid.", errors: { incidentDate: "Tanggal kejadian tidak valid." } };
+    }
+    if (isFutureDate(input.incidentDate)) {
+      return { success: false, message: "Tanggal kejadian tidak boleh di masa depan.", errors: { incidentDate: "Tanggal kejadian tidak boleh di masa depan." } };
+    }
+  }
 
   await db.report.update({
     where: { id },
@@ -210,7 +231,14 @@ export async function updateReport(
       ...(input.title && { title: input.title.trim() }),
       ...(input.categoryId && { category: { connect: { id: input.categoryId } } }),
       ...(input.areaId && { area: { connect: { id: input.areaId } } }),
-      ...(input.facilityId !== undefined && { 
+      ...(input.areaIds && input.areaIds.length > 0 && {
+        areas: {
+          set: Array.from(
+            new Set([...(input.areaId ? [input.areaId] : []), ...input.areaIds])
+          ).map((id) => ({ id })),
+        },
+      }),
+      ...(input.facilityId !== undefined && {
         facility: input.facilityId 
           ? { connect: { id: input.facilityId } } 
           : { disconnect: true } 

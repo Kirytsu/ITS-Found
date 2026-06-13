@@ -6,6 +6,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import ReportFormLayout from "@/components/shared/ReportFormLayout";
 import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
 import { getSession } from "@/lib/auth";
+import { getT } from "@/lib/i18n/server";
 
 interface SearchParams { type?: string; }
 
@@ -15,11 +16,11 @@ export default async function NewReportPage({ searchParams }: { searchParams: Pr
 
   const params = await searchParams;
   const type = params.type === "found" ? "found" : "lost";
-  const [areas, categories] = await Promise.all([getAllAreas(), getAllCategories()]);
+  const [areas, categories, t] = await Promise.all([getAllAreas(), getAllCategories(), getT()]);
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={type === "lost" ? "Lapor Kehilangan" : "Lapor Penemuan"} />
+      <PageHeader title={type === "lost" ? t("nav.reportLost") : t("nav.reportFound")} />
       <ReportFormLayout type={type} areas={areas} categories={categories} />
     </div>
   );

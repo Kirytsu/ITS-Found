@@ -3,10 +3,11 @@
  * Detail card for report — image + metadata rows + title.
  * Extracted from report/[id]/page.tsx for reusability.
  */
-import Image from "next/image";
-import { ImageIcon } from "lucide-react";
+import ReportImage from "@/components/ui/ReportImage";
 import Badge from "@/components/ui/Badge";
 import { formatDate, statusToBadgeVariant } from "@/lib/utils";
+import { translate } from "@/lib/i18n/dictionaries";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import type { ReportWithRelations } from "@/types";
 
 interface MetaRow {
@@ -16,53 +17,51 @@ interface MetaRow {
 
 interface ReportMetaCardProps {
   report: ReportWithRelations;
+  locale?: Locale;
 }
 
-export default function ReportMetaCard({ report }: ReportMetaCardProps) {
+export default function ReportMetaCard({ report, locale = DEFAULT_LOCALE }: ReportMetaCardProps) {
+  const t = (key: string) => translate(locale, key);
   const isClaimed = report.status === "PUBLISHED" && !!report.claim;
   const badgeVariant = (isClaimed ? "claimed" : statusToBadgeVariant(report.status)) as "claimed" | "active" | "unverified" | "resolved" | "rejected";
 
   const rows: MetaRow[] = [
-    { label: "Status",           value: <Badge variant={badgeVariant} /> },
+    { label: t("meta.status"),       value: <Badge variant={badgeVariant} locale={locale} /> },
     {
-      label: "Jenis Kasus",
+      label: t("meta.caseType"),
       value: (
-        <span className={report.type === "LOST" ? "text-orange-600 font-semibold" : "text-teal-600 font-semibold"}>
-          {report.type === "LOST" ? "Kehilangan" : "Penemuan"}
+        <span className={report.type === "LOST" ? "text-orange-600 font-semibold" : "text-brand-600 font-semibold"}>
+          {report.type === "LOST" ? t("type.lost") : t("type.found")}
         </span>
       ),
     },
-    { label: "Jenis Barang",     value: report.category.name },
-    { label: "Tanggal Kejadian", value: formatDate(report.incidentDate) },
-    { label: "Lokasi Detail",    value: report.locationDetail },
-    { label: "Deskripsi",        value: report.description },
-    { label: "Area",             value: report.area.name },
+    { label: t("meta.itemType"),     value: report.category.name },
+    { label: t("meta.incidentDate"), value: formatDate(report.incidentDate, locale) },
+    { label: t("meta.locationDetail"), value: report.locationDetail },
+    { label: t("meta.description"),  value: report.description },
+    {
+      label: report.areas && report.areas.length > 1 ? t("meta.areaMulti") : t("meta.area"),
+      value: report.areas && report.areas.length > 0
+        ? report.areas.map((a) => a.name).join(", ")
+        : report.area.name,
+    },
     ...(report.type === "FOUND" && report.facility
       ? [
-          { label: "Fasilitas Penitipan", value: report.facility.name },
-          { label: "Alamat Fasilitas",    value: report.facility.address || "-" },
-          { label: "Telepon Fasilitas",   value: report.facility.phone || "-" },
+          { label: t("meta.facility"),        value: report.facility.name },
+          { label: t("meta.facilityAddress"), value: report.facility.address || "-" },
+          { label: t("meta.facilityPhone"),   value: report.facility.phone || "-" },
         ]
       : []),
   ];
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-      {/* Image */}
-      <div className="relative w-full h-56 bg-gray-100 flex items-center justify-center">
-        {report.imageUrl ? (
-          <Image src={report.imageUrl} alt={report.title} fill className="object-cover" />
-        ) : (
-          <div className="flex flex-col items-center gap-2 text-gray-300">
-            <ImageIcon size={48} />
-            <span className="text-xs">Tidak ada foto</span>
-          </div>
-        )}
-      </div>
+      {/* Image — full photo, never cropped, bigger frame for detail view */}
+      <ReportImage src={report.imageUrl} alt={report.title} className="h-80 sm:h-96" emptySize={48} />
 
       {/* Title */}
       <div className="px-5 pt-4 pb-2">
-        <h1 className="text-xl font-bold text-gray-900 leading-snug">{report.title}</h1>
+        <h1 className="text-xl font-bold text-gray-900 leading-snug break-words">{report.title}</h1>
       </div>
 
       {/* Meta rows */}
@@ -70,7 +69,7 @@ export default function ReportMetaCard({ report }: ReportMetaCardProps) {
         {rows.map(({ label, value }) => (
           <div key={label} className="flex gap-3 py-2.5">
             <span className="text-sm text-gray-500 w-40 flex-shrink-0">{label}</span>
-            <span className="text-sm text-gray-900 font-medium flex-1">{value}</span>
+            <span className="text-sm text-gray-900 font-medium flex-1 min-w-0 break-words whitespace-pre-wrap">{value}</span>
           </div>
         ))}
       </div>
