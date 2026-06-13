@@ -56,7 +56,6 @@ function getMeta(actionKey: string): Meta {
           : "notif.action.readyPickup",
       };
     case "claimSubmitted":
-    case "claimToResolve":
     case "claimMade":
     case "reportCreatedLost":
       return {

@@ -187,39 +187,6 @@ export async function notifyAdminsNewFoundReport(
 }
 
 /**
- * Notifies all admins when a claim is made on a FOUND report.
- * Admin needs to mark it as "selesai" after claimant verifies at facility.
- */
-export async function notifyAdminsClaimMade(
-  reportId: string
-): Promise<void> {
-  const report = await db.report.findUnique({
-    where: { id: reportId },
-  });
-  if (!report) return;
-
-  // Find all admins
-  const admins = await db.user.findMany({
-    where: { role: "ADMIN" },
-  });
-
-  if (admins.length === 0) return;
-
-  // Create notification for each admin
-  await Promise.all(
-    admins.map((admin) =>
-      db.notification.create({
-        data: {
-          userId: admin.id,
-          actionKey: "claimToResolve",
-          matchedReportId: reportId,
-        },
-      })
-    )
-  );
-}
-
-/**
  * Status-based: when a report becomes RESOLVED, notify everyone tied to it —
  * the report author, the claimant (if any), and whoever resolved it (admin or owner).
  */

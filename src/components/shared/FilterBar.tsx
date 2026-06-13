@@ -19,9 +19,9 @@ interface FilterBarProps {
   categories: SelectOption[];
   showStatus?: boolean;
   showDateRange?: boolean;
-  /** "public" → Aktif/Selesai (default Aktif); "full" → all 4 + all-option; "verify" → Menunggu/Terverifikasi;
-   *  "adminList" → all 4, no all-option, default Aktif (admin browsing /found + /lost). */
-  statusMode?: "public" | "full" | "verify" | "adminList";
+  /** "public" → Aktif/Selesai (default Aktif); "full" → all + all-option;
+   *  "adminList" → all, no all-option, default Aktif (admin browsing /found + /lost). */
+  statusMode?: "public" | "full" | "adminList";
   /** Overrides the status shown when no ?status param is present (e.g. admin defaults to UNVERIFIED). */
   initialStatus?: string;
   /** Whether reports here can be claimed (FOUND). When false (LOST), CLAIM_PENDING is hidden. */
@@ -36,13 +36,12 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
   const [, startTransition] = useTransition();
 
   const isPublicStatus = statusMode === "public";
-  const isVerifyStatus = statusMode === "verify";
   const isAdminList    = statusMode === "adminList";
   // Only "full" exposes an "all" option; every other mode forces a concrete status.
-  const noAllOption = isPublicStatus || isVerifyStatus || isAdminList;
+  const noAllOption = isPublicStatus || isAdminList;
 
   // CLAIM_PENDING only applies to claimable (FOUND) reports — drop it on LOST.
-  const FOUR_STATUS: SelectOption[] = [
+  const ALL_STATUS: SelectOption[] = [
     { value: "PUBLISHED",     label: t("status.active") },
     { value: "UNVERIFIED",    label: t("status.unverified") },
     ...(claimable ? [{ value: "CLAIM_PENDING", label: t("status.claimPending") }] : []),
@@ -56,16 +55,10 @@ export default function FilterBar({ areas, categories, showStatus = false, showD
         ...(claimable ? [{ value: "CLAIM_PENDING", label: t("status.claimPending") }] : []),
         { value: "RESOLVED",      label: t("status.resolved") },
       ]
-    : isVerifyStatus
-    ? [
-        { value: "UNVERIFIED", label: t("status.unverified") },
-        { value: "PUBLISHED",  label: t("status.verified") },
-      ]
-    : FOUR_STATUS;
+    : ALL_STATUS;
 
-  // Default when no ?status param: explicit override > public/adminList Aktif > verify Menunggu > full all.
-  const defaultStatus = initialStatus
-    ?? (isPublicStatus || isAdminList ? "PUBLISHED" : isVerifyStatus ? "UNVERIFIED" : "");
+  // Default when no ?status param: explicit override > public/adminList Aktif > full all.
+  const defaultStatus = initialStatus ?? (isPublicStatus || isAdminList ? "PUBLISHED" : "");
 
   const [area, setArea]         = useState(searchParams.get("areaId") ?? "");
   const [category, setCategory] = useState(searchParams.get("categoryId") ?? "");
