@@ -93,7 +93,7 @@ export default function ReportDetailActions({
     startTransition(async () => {
       const result = await deleteReport(report.id);
       if (result.success) {
-        window.location.href = "/my-reports?deleted=1";
+        window.location.href = "/my-reports?notif=1";
       } else {
         addToast(result.message, "error");
         setShowConfirm(false);

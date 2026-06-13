@@ -5,6 +5,7 @@
  */
 import { db } from "../db";
 import { revalidatePath } from "next/cache";
+import { getSession } from "../auth";
 import type { ReportWithRelations } from "../../types";
 
 /**
@@ -260,11 +261,63 @@ export async function getMatchedReports(
   return findMatches(reportId);
 }
 
-/** Marks a notification as read. */
+/** Deletes only already-read notifications for a user. */
+export async function clearReadNotifications(userId: string): Promise<void> {
+  await db.notification.deleteMany({ where: { userId, isRead: true } });
+  revalidatePath("/", "layout");
+}
+
+/** Self-notification: user created a report. */
+export async function notifyUserReportCreated(
+  userId: string,
+  reportId: string,
+  type: "LOST" | "FOUND"
+): Promise<void> {
+  await db.notification.create({
+    data: {
+      userId,
+      actionKey: type === "LOST" ? "reportCreatedLost" : "reportCreatedFound",
+      matchedReportId: reportId,
+    },
+  });
+}
+
+/** Self-notification: user edited their report. */
+export async function notifyUserReportEdited(
+  userId: string,
+  reportId: string
+): Promise<void> {
+  await db.notification.create({
+    data: { userId, actionKey: "reportEdited", matchedReportId: reportId },
+  });
+}
+
+/** Self-notification: user deleted their report (no reportId — already deleted). */
+export async function notifyUserReportDeleted(userId: string): Promise<void> {
+  await db.notification.create({
+    data: { userId, actionKey: "reportDeleted", matchedReportId: null },
+  });
+}
+
+/** Marks a single notification as read and updates the layout badge. */
 export async function markNotificationAsRead(notifId: string): Promise<void> {
   await db.notification.update({
     where: { id: notifId },
     data: { isRead: true },
+  });
+  revalidatePath("/", "layout");
+}
+
+/** Returns the most recent notification for the current session user. */
+export async function getLatestUserNotification() {
+  const session = await getSession();
+  if (!session) return null;
+  return db.notification.findFirst({
+    where: { userId: session.userId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      matchedReport: { include: { area: true, category: true } },
+    },
   });
 }
 

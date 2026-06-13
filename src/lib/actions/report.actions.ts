@@ -8,7 +8,10 @@ import { db } from "../db";
 import { requireSession } from "../auth";
 import { isValidDate, isFutureDate } from "../utils";
 import { getT } from "../i18n/server";
-import { findMatches, createMatchNotifications, notifyAdminsNewFoundReport, notifyClaimerReportResolved } from "./notification.actions";
+import {
+  findMatches, createMatchNotifications, notifyAdminsNewFoundReport, notifyClaimerReportResolved,
+  notifyUserReportCreated, notifyUserReportEdited, notifyUserReportDeleted,
+} from "./notification.actions";
 import type {
   ActionResult,
   CreateReportInput,
@@ -79,7 +82,8 @@ export async function createReport(
     },
   });
 
-  // Notify admins if FOUND report (needs verification)
+  // Self-notification + admin notification
+  await notifyUserReportCreated(session.userId, report.id, input.type);
   if (input.type === "FOUND") {
     await notifyAdminsNewFoundReport(report.id);
   }
@@ -253,6 +257,8 @@ export async function updateReport(
     },
   });
 
+  await notifyUserReportEdited(session.userId, id);
+
   revalidatePath(`/report/${id}`);
   revalidatePath("/my-reports");
   revalidatePath("/found");
@@ -280,9 +286,12 @@ export async function deleteReport(id: string): Promise<ActionResult> {
     return { success: false, message: t("action.report.publishedNoDelete") };
   }
 
-  // Delete related notifications first (FK constraint)
+  // Delete related notifications first (FK constraint), then report
   await db.notification.deleteMany({ where: { matchedReportId: id } });
   await db.report.delete({ where: { id } });
+
+  // Self-notification after deletion (matchedReportId null — report gone)
+  await notifyUserReportDeleted(session.userId);
 
   revalidatePath("/my-reports");
   revalidatePath("/lost");

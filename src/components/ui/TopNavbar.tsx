@@ -16,12 +16,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Menu, X, LayoutDashboard, Search,
   PackageOpen, ClipboardList, Settings, LogOut,
-  PlusCircle, ShieldCheck, User, Bell,
+  PlusCircle, ShieldCheck, User, Bell, Sun, Moon,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { logoutUser } from "@/lib/actions/auth.actions";
 import BrandMark from "@/components/ui/BrandMark";
-import { useT } from "@/components/shared/LanguageProvider";
+import { useT, useLanguage } from "@/components/shared/LanguageProvider";
+import { useTheme } from "@/components/shared/ThemeProvider";
 
 /* ─────────────── Types ─────────────────────────────────────────────────────── */
 interface NavSection {
@@ -139,19 +140,6 @@ function SidebarContent({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Profile Card (Desktop) */}
-      <Link href="/profile" className="hidden lg:block px-4 py-4 border-b border-gray-100 flex-shrink-0 hover:bg-gray-50 transition-colors rounded-b-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 select-none">
-            {userName ? userName.charAt(0).toUpperCase() : "?"}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{t("nav.viewProfile")}</p>
-          </div>
-        </div>
-      </Link>
-
       {/* Brand */}
       <div className="px-4 py-5 border-b border-gray-100 flex-shrink-0">
         <BrandMark size="md" />
@@ -182,24 +170,40 @@ function SidebarContent({
         ))}
       </nav>
 
-      {/* Bottom: Profil + Notifikasi + Pengaturan + Keluar */}
-      <div className="px-2 pb-4 pt-3 border-t border-gray-100 flex-shrink-0 flex flex-col gap-0.5">
-        <NavLink
-          item={{ href: "/profile", labelKey: "nav.profile", icon: User }}
-          onClose={onClose}
-        />
-        <NavLink
-          item={{ href: "/notifications", labelKey: "nav.notifications", icon: Bell }}
-          onClose={onClose}
-          badge={displayCount}
-        />
-        <NavLink
-          item={{ href: "/settings", labelKey: "nav.settings", icon: Settings }}
-          onClose={onClose}
-        />
+      {/* Bottom section */}
+      <div className="px-2 pb-4 pt-3 border-t border-gray-100 shrink-0 flex flex-col gap-0.5">
+        {/* Mobile only: profile card + icon logout + notifications + settings */}
+        <div className="lg:hidden flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            <Link
+              href="/profile"
+              onClick={onClose}
+              className="flex flex-1 items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors min-w-0"
+            >
+              <div className="w-8 h-8 rounded-full bg-linear-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0 select-none">
+                {userName ? userName.charAt(0).toUpperCase() : "?"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate leading-tight">{userName ?? "—"}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5">{t("nav.viewProfile")}</p>
+              </div>
+            </Link>
+            <button
+              onClick={onLogout}
+              className="p-2.5 rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition-colors shrink-0"
+              aria-label={t("nav.logout")}
+            >
+              <LogOut size={18} strokeWidth={2} />
+            </button>
+          </div>
+          <NavLink item={{ href: "/notifications", labelKey: "nav.notifications", icon: Bell }} onClose={onClose} badge={displayCount} />
+          <NavLink item={{ href: "/settings", labelKey: "nav.settings", icon: Settings }} onClose={onClose} />
+        </div>
+
+        {/* Desktop only: full-width logout button */}
         <button
           onClick={onLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          className="hidden lg:flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400 transition-colors"
         >
           <LogOut size={18} className="text-gray-400" strokeWidth={2} />
           {t("nav.logout")}
@@ -216,7 +220,16 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
 
   const router = useRouter();
   const t = useT();
+  const { theme, setTheme } = useTheme();
+  const { locale, setLocale } = useLanguage();
   const sections = buildSections(isAdmin);
+
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+  const toggleLocale = () => {
+    const next = locale === "id" ? "en" : "id";
+    setLocale(next);
+    router.refresh();
+  };
 
   const handleLogout = async () => {
     setDrawerOpen(false);
@@ -228,9 +241,93 @@ export default function TopNavbar({ unreadCount = 0, userName, isAdmin }: TopNav
 
   const sidebarProps = { sections, userName, unreadCount, onLogout: handleLogout };
   const currentDisplayCount = unreadCount;
+  const pathname = usePathname();
 
   return (
     <>
+      {/* ══ DESKTOP: Fixed top header (right of sidebar) ═════════════════════ */}
+      {/* Transparent — gray-50 = dark page bg, so border-gray-200/20 stays subtle in both modes */}
+      <header className="hidden lg:flex fixed top-0 left-64 right-0 z-30 h-14 bg-transparent border-b border-gray-200/30 items-center justify-between px-6">
+        {/* Left: theme + language toggles */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={toggleTheme}
+            className="p-2.5 rounded-xl transition-colors text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
+            aria-label={theme === "dark" ? t("settings.theme.light") : t("settings.theme.dark")}
+          >
+            {theme === "dark" ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}
+          </button>
+          <button
+            onClick={toggleLocale}
+            className="px-2.5 py-1.5 rounded-xl transition-colors text-xs font-bold tracking-wide text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
+            aria-label="Switch language"
+          >
+            {locale === "id" ? "ID" : "EN"}
+          </button>
+        </div>
+
+        {/* Right: notifications + settings + profile */}
+        <div className="flex items-center gap-1">
+        {/* Notifications */}
+        {/* dark: gray-200=#27272a (hover), brand-100=#14254d (active), brand-600=#7aa0f5 (text) */}
+        <Link
+          href="/notifications"
+          className={clsx(
+            "relative p-2.5 rounded-xl transition-colors",
+            pathname === "/notifications"
+              ? "bg-brand-50 text-brand-700 dark:bg-brand-100/50 dark:text-brand-600"
+              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
+          )}
+          aria-label={t("nav.notifications")}
+        >
+          <Bell size={20} strokeWidth={pathname === "/notifications" ? 2.5 : 2} />
+          {currentDisplayCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+              {currentDisplayCount > 99 ? "99+" : currentDisplayCount}
+            </span>
+          )}
+        </Link>
+
+        {/* Settings */}
+        <Link
+          href="/settings"
+          className={clsx(
+            "p-2.5 rounded-xl transition-colors",
+            pathname === "/settings"
+              ? "bg-brand-50 text-brand-700 dark:bg-brand-100/50 dark:text-brand-600"
+              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-200"
+          )}
+          aria-label={t("nav.settings")}
+        >
+          <Settings size={20} strokeWidth={pathname === "/settings" ? 2.5 : 2} />
+        </Link>
+
+        {/* Divider — gray-300 dark = #3f3f46 */}
+        <div className="w-px h-5 bg-gray-200 dark:bg-gray-300 mx-1" />
+
+        {/* Profile — gray-700 dark = #e4e4e7 (legible text on dark) */}
+        <Link
+          href="/profile"
+          className={clsx(
+            "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors",
+            pathname === "/profile"
+              ? "bg-brand-50 dark:bg-brand-100/50"
+              : "hover:bg-gray-100 dark:hover:bg-gray-200"
+          )}
+        >
+          <div className="w-7 h-7 rounded-full bg-linear-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0 select-none">
+            {userName ? userName.charAt(0).toUpperCase() : "?"}
+          </div>
+          <span className={clsx(
+            "text-sm font-semibold max-w-[140px] truncate",
+            pathname === "/profile" ? "text-brand-700 dark:text-brand-600" : "text-gray-700 dark:text-gray-700"
+          )}>
+            {userName ?? "—"}
+          </span>
+        </Link>
+        </div>{/* end right section */}
+      </header>
+
       {/* ══ MOBILE: Fixed top bar ════════════════════════════════════════════ */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
         <button

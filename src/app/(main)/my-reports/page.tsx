@@ -11,7 +11,7 @@ import ReportCard from "@/components/shared/ReportCard";
 import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
 import { getMyReports } from "@/lib/actions/report.actions";
 import { getSession } from "@/lib/auth";
-import DeleteSuccessToast from "@/components/shared/DeleteSuccessToast";
+import NotifCardToast from "@/components/shared/NotifCardToast";
 import { getLocale } from "@/lib/i18n/server";
 import { getTranslator } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/config";
@@ -91,7 +91,7 @@ export default async function MyReportsPage({ searchParams }: { searchParams: Pr
   return (
     <div className="flex flex-col gap-4">
       <Suspense fallback={null}>
-        <DeleteSuccessToast />
+        <NotifCardToast />
       </Suspense>
 
       <div className="flex items-center justify-between gap-4">

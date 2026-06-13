@@ -8,6 +8,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Pagination from "@/components/ui/Pagination";
 import FilterBar from "@/components/shared/FilterBar";
 import ReportCard from "@/components/shared/ReportCard";
+import NotifCardToast from "@/components/shared/NotifCardToast";
 import { getAllAreas, getAllCategories } from "@/lib/actions/area.actions";
 import { getPublicReports } from "@/lib/actions/report.actions";
 import { getLocale } from "@/lib/i18n/server";
@@ -68,6 +69,7 @@ export default async function LostPage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="flex flex-col gap-4">
+      <Suspense fallback={null}><NotifCardToast /></Suspense>
       <div className="flex items-center justify-between gap-4">
         <PageHeader title={t("page.lost.title")} />
         <Link href="/report/new?type=lost">

@@ -64,8 +64,8 @@ export default function SettingsPage() {
           value={locale}
           onChange={changeLanguage}
           options={[
-            { value: "id", label: <>ID Indonesia</> },
-            { value: "en", label: <>EN English</> },
+            { value: "id", label: <>Bahasa</> },
+            { value: "en", label: <>English</> },
           ]}
         />
       </section>

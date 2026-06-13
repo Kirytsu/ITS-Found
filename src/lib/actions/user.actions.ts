@@ -23,7 +23,9 @@ export async function getUserProfile() {
             _count: {
                 select: {
                     reports: true,
-                    notifications: true,
+                    notifications: {
+                        where: { isRead: false },
+                    },
                 },
             },
         },

@@ -151,12 +151,10 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
           : await createReport(payload);
 
         if (result.success) {
-          addToast(result.message, "success");
           const targetId = isEdit ? initialData!.id : (result.data?.reportId as string | undefined);
-          setTimeout(() => {
-            router.push(targetId ? `/report/${targetId}` : (type === "lost" ? "/lost" : "/found"));
-            router.refresh();
-          }, 1200);
+          const targetPath = targetId ? `/report/${targetId}` : (type === "lost" ? "/lost" : "/found");
+          router.push(`${targetPath}?notif=1`);
+          router.refresh();
         } else {
           addToast(result.message, "error");
           if (result.errors) setErrors(result.errors);
@@ -195,10 +193,10 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
               error={errors.areaId}
             />
           )}
-          <Select
+          <Combobox
             label={t("form.category")} name="categoryId" options={categories}
             placeholder={t("form.category.ph")} required
-            value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
+            value={categoryId} onChange={(v) => setCategoryId(v)}
             error={errors.categoryId}
           />
         </div>
@@ -250,7 +248,7 @@ export default function ReportFormLayout({ type, areas, categories, initialData 
 
       {/* ── Sticky bottom bar — lg:left-64 excludes sidebar ── */}
       <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-30 bg-white border-t border-gray-200 shadow-lg">
-        <div className="flex gap-3 px-4 py-3 max-w-3xl mx-auto">
+        <div className="flex gap-3 px-4 py-3 max-w-3xl lg:max-w-5xl mx-auto">
           <Button
             type="button" variant="outline" size="full" className="rounded-full"
             onClick={() => router.back()} disabled={isPending}

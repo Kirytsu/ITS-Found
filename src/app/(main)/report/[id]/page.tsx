@@ -6,7 +6,9 @@ import { notFound } from "next/navigation";
 import { getReportById } from "@/lib/actions/report.actions";
 import { getMatchedReports } from "@/lib/actions/notification.actions";
 import { getSession } from "@/lib/auth";
+import { Suspense } from "react";
 import PageHeader from "@/components/ui/PageHeader";
+import NotifCardToast from "@/components/shared/NotifCardToast";
 import ReportMetaCard from "@/components/shared/ReportMetaCard";
 import ReportTimeline from "@/components/shared/ReportTimeline";
 import MatchedReportsSection from "@/components/shared/MatchedReportsSection";
@@ -39,6 +41,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="flex flex-col gap-4 pb-28">
+      <Suspense fallback={null}><NotifCardToast /></Suspense>
       <PageHeader title={t("detail.pageTitle")} />
       
       {/* Claimant Banner */}
